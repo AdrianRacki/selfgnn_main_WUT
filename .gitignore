@@ -1,2 +1,7 @@
 notebooks
 notes.txt
+.vscode
+src/playground.ipynb
+src/__pycache__
+data/processed
+data/.DS_Store

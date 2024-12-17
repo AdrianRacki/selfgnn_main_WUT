@@ -74,7 +74,7 @@ e_map: Dict[str, List[Any]] = {
 }
 
 
-def from_rdmol(mol: Any) -> "torch_geometric.data.Data": # type: ignore
+def from_rdmol(mol: Any) -> "torch_geometric.data.Data":  # type: ignore
     r"""Converts a :class:`rdkit.Chem.Mol` instance to a
     :class:`torch_geometric.data.Data` instance.
 
@@ -130,7 +130,7 @@ def from_smiles(
     smiles: str,
     with_hydrogen: bool = False,
     kekulize: bool = False,
-) -> "torch_geometric.data.Data": # type: ignore
+) -> "torch_geometric.data.Data":  # type: ignore
     r"""Converts a SMILES string to a :class:`torch_geometric.data.Data`
     instance.
 
@@ -161,7 +161,7 @@ def from_smiles(
 
 
 def to_rdmol(
-    data: "torch_geometric.data.Data", # type: ignore
+    data: "torch_geometric.data.Data",  # type: ignore
     kekulize: bool = False,
 ) -> Any:
     """Converts a :class:`torch_geometric.data.Data` instance to a
@@ -225,7 +225,7 @@ def to_rdmol(
 
 
 def to_smiles(
-    data: "torch_geometric.data.Data", # type: ignore
+    data: "torch_geometric.data.Data",  # type: ignore
     kekulize: bool = False,
 ) -> str:
     """Converts a :class:`torch_geometric.data.Data` instance to a SMILES

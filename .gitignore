@@ -5,3 +5,6 @@ src/playground.ipynb
 src/__pycache__
 data/processed
 data/.DS_Store
+.GBT
+.gitignore
+.DS_Store

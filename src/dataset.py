@@ -24,12 +24,32 @@ class SelfGraphDataset(InMemoryDataset):
 
     @property
     def raw_file_names(self) -> List[str]:
-        """Defines filename of input raw files."""
+        """
+        Returns the list of raw file names required for the dataset.
+
+        This method defines the filenames of the input raw files that are
+        necessary for the dataset. These files are expected to be located
+        in the raw data directory.
+
+        Returns:
+            List[str]: A list containing the filenames of the raw input files.
+        """
         return ["cations.csv", "anions.csv"]
 
     @property
     def processed_file_names(self) -> List[str]:
-        """Defines filename of output processed files."""
+        """
+        Defines the filenames of the output processed files.
+
+        This method returns a list of filenames that represent the processed
+        graph dataset files. These files are typically used for storing
+        preprocessed data that can be quickly loaded for training or inference
+        purposes.
+
+        Returns:
+            List[str]: A list containing the filenames of the processed graph
+            dataset files.
+        """
         return ["graph_dataset.pt"]
 
     def download(self) -> None:
@@ -44,7 +64,10 @@ class SelfGraphDataset(InMemoryDataset):
         data_list = []
         for il in itertools.product(cations_df["cation"], anions_df["anion"]):
             il_smiles = ".".join(il)
-            data_list.append(from_smiles(il_smiles))
+            data = from_smiles(il_smiles)
+            data.x = data.x.float()
+            data.edge_attr = data.edge_attr.float()
+            data_list.append(data)
 
         if self.pre_filter is not None:
             data_list = [data for data in data_list if self.pre_filter(data)]

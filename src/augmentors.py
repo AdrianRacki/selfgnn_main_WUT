@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-
+from copy import deepcopy
 from torch_geometric.data import Data
 from torch_geometric.utils import dropout_adj, mask_feature
 
@@ -49,13 +49,14 @@ class EdgeRemoving(Augmentor):
         self.p = p
 
     def augment(self, g: Data) -> Data:
-        g.edge_index, g.edge_attr = dropout_adj(
+        g_aug = deepcopy(g)
+        g_aug.edge_index, g_aug.edge_attr = dropout_adj(
             edge_index=g.edge_index, # type: ignore
             edge_attr=g.edge_attr,
             p=self.p,
             force_undirected=True,
         )  
-        return g
+        return g_aug
 
 
 class FeatureMasking(Augmentor):
@@ -71,5 +72,6 @@ class FeatureMasking(Augmentor):
         self.p = p
 
     def augment(self, g: Data) -> Data:
-        g.x, _ = mask_feature(g.x, self.p, mode="all")  # type: ignore
-        return g
+        g_aug = deepcopy(g)
+        g_aug.x, _ = mask_feature(g.x, self.p, mode="all")  # type: ignore
+        return g_aug

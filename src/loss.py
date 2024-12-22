@@ -1,10 +1,11 @@
 import torch
+from typing import Optional
 
 
 def barlow_twins_loss(
     z_a: torch.Tensor,
     z_b: torch.Tensor,
-    _lambda: float | None = None,
+    _lambda: Optional[float] = None,
 ) -> torch.Tensor:
     """
     Computes the Barlow Twins loss between two sets of embeddings.
@@ -12,6 +13,7 @@ def barlow_twins_loss(
     Args:
         z_a (torch.Tensor): Embeddings from the first view.
         z_b (torch.Tensor): Embeddings from the second view.
+        _lambda (Optional[float]): Regularization parameter.
 
     Returns:
         torch.Tensor: The computed Barlow Twins loss.

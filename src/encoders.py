@@ -16,7 +16,9 @@ class ThreeLayerGAT(torch.nn.Module):
         num_heads (int): Number of attention heads.
     """
 
-    def __init__(self, in_dim, hidden_dim, out_dim, edge_dim, num_heads):
+    def __init__(
+        self, in_dim: int, hidden_dim: int, out_dim: int, edge_dim: int, num_heads: int
+    ):
         super().__init__()
         self._edgeMLP = Linear(edge_dim, hidden_dim)
 
@@ -47,7 +49,13 @@ class ThreeLayerGAT(torch.nn.Module):
         self._act2 = PReLU()
         self._act3 = PReLU()
 
-    def forward(self, x, edge_index, edge_attr, batch_index):
+    def forward(
+        self,
+        x: torch.Tensor,
+        edge_index: torch.Tensor,
+        edge_attr: torch.Tensor,
+        batch_index: torch.Tensor | None,
+    ):
         edge_attr = self._act0(self._norm0(self._edgeMLP(edge_attr), batch_index))
 
         x = self._gat1(x, edge_index, edge_attr)

@@ -76,3 +76,41 @@ class SelfGraphDataset(InMemoryDataset):
             data_list = [self.pre_transform(data) for data in data_list]
 
         self.save(data_list, self.processed_paths[0])
+
+class LabeledGraphDataset(InMemoryDataset):
+    def __init__(
+        self, root, transform=None, pre_transform=None, pre_filter=None
+    ) -> None:
+        super().__init__(root, transform, pre_transform, pre_filter)
+        self.load(self.processed_paths[0])
+
+    @property
+    def raw_file_names(self) -> List[str]:
+        return ["raw_database.csv"]
+
+    @property
+    def processed_file_names(self) -> List[str]:
+        return ["labeled_graph_dataset.pt"]
+
+    def download(self) -> None:
+        pass
+
+    def process(self) -> None:
+        df = pd.read_csv(self.raw_paths[0])
+        data_list = []
+        for _, row in df.iterrows():
+            il_smiles = row["smiles"]
+            mp = row["MP"]
+            data = from_smiles(il_smiles)
+            data.x = data.x.float()
+            data.edge_attr = data.edge_attr.float()
+            data.y = mp
+            data_list.append(data)
+
+        if self.pre_filter is not None:
+            data_list = [data for data in data_list if self.pre_filter(data)]
+
+        if self.pre_transform is not None:
+            data_list = [self.pre_transform(data) for data in data_list]
+
+        self.save(data_list, self.processed_paths[0])

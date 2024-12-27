@@ -1,14 +1,17 @@
 from typing import Any
 
 import lightning as L
-import mlflow
 import torch
+from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 from lightning.pytorch.loggers import CSVLogger
-from torch_geometric.data import Data
+from torch_geometric.loader import DataLoader
 
 from augmentors import Compose, EdgeRemoving, FeatureMasking
+from dataset import SelfGraphDataset
 from encoders import ThreeLayerGAT
 from loss import barlow_twins_loss
+
+DATA_ROOT = "/Users/adrianracki/Desktop/Projects/selfgnn_main/data"
 
 
 class SelfGBT(L.LightningModule):
@@ -35,7 +38,7 @@ class SelfGBT(L.LightningModule):
         self.weight_decay = params["weight_decay"]
         self.er_ratio = params["er_ratio"]
         self.fm_ratio = params["fm_ratio"]
-
+        self.save_hyperparameters(params)
         # Define loss function
         self.loss = barlow_twins_loss
 
@@ -69,7 +72,7 @@ class SelfGBT(L.LightningModule):
         )
 
 
-def train_model(params: dict[str, Any], data: Any) -> L.LightningModule:
+def train_model(params: dict[str, Any]) -> L.LightningModule:
     """
     Trains the SelfGBT model with the given hyperparameters and data.
 
@@ -85,17 +88,32 @@ def train_model(params: dict[str, Any], data: Any) -> L.LightningModule:
             - er_ratio (float): Edge removing ratio.
             - fm_ratio (float): Feature masking ratio.
             - max_epochs (int): Maximum number of epochs.
+            - batch_size (int): Batch size.
         data (Any): Data for training the model, usually in the form of a PyTorch Geometric DataLoader.
 
     Returns:
         L.LightningModule: Trained SelfGBT model.
     """
-    L.seed_everything(47)
-
+    # Data and model preparation
+    dataset = SelfGraphDataset(DATA_ROOT)
+    data = DataLoader(dataset, batch_size=params["batch_size"], shuffle=True)
     model = SelfGBT(params)
+    # Callbacks
     logger = CSVLogger(save_dir="lightning_logs", name="Test_runs")
+    es = EarlyStopping("train_loss", patience=5, mode="min")
+    checkpoint_callback = ModelCheckpoint(
+        filename="{epoch}-{train_loss:.2f}",
+        monitor="train_loss",
+        save_top_k=2,
+        mode="min",
+    )
+    # Trainer
     trainer = L.Trainer(
-        max_epochs=params["max_epochs"], deterministic=True, logger=logger, accelerator="cpu"
+        max_epochs=params["max_epochs"],
+        deterministic=False,
+        logger=logger,
+        accelerator="cpu",
+        callbacks=[es,checkpoint_callback],
     )
 
     trainer.fit(model, data)

@@ -4,7 +4,7 @@ from typing import List
 import pandas as pd
 from torch_geometric.data import InMemoryDataset
 
-from graph_tools import from_smiles
+from utils import from_smiles
 
 
 class SelfGraphDataset(InMemoryDataset):

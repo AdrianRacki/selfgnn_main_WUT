@@ -2,10 +2,10 @@ notebooks
 notes.txt
 .vscode
 src/playground.ipynb
-src/__pycache__
 data/processed
 data/.DS_Store
 .GBT
 .gitignore
 .DS_Store
 src/lightning_logs
+**/__pycache__/

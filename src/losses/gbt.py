@@ -1,6 +1,7 @@
 import torch
 from typing import Optional
 
+
 # TODO: Fix this so it works on single graph, not on batch of graphs
 def barlow_twins_loss(
     z_a: torch.Tensor,

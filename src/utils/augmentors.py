@@ -4,6 +4,7 @@ from torch_geometric.data import Data
 from torch_geometric.utils import dropout_adj, mask_feature
 from typing import List
 
+
 # TODO: Fix augmentors to work on single graph, not on whole batch
 class Augmentor(ABC):
     """Base class for graph augmentors. DataBatch is also supported."""
@@ -52,11 +53,11 @@ class EdgeRemoving(Augmentor):
     def augment(self, g: Data) -> Data:
         g_aug = deepcopy(g)
         g_aug.edge_index, g_aug.edge_attr = dropout_adj(
-            edge_index=g.edge_index, # type: ignore
+            edge_index=g.edge_index,  # type: ignore
             edge_attr=g.edge_attr,
             p=self.p,
             force_undirected=True,
-        )  
+        )
         return g_aug
 
 

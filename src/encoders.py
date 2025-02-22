@@ -4,6 +4,7 @@ from torch_geometric.nn import GATv2Conv as GATConv
 from torch_geometric.nn.norm import GraphNorm
 from generic import EmbeddingLayer
 
+
 # TODO: Create BaseEncoder class as parent class for all encoders
 class ThreeLayerGAT(torch.nn.Module):
     """
@@ -21,37 +22,38 @@ class ThreeLayerGAT(torch.nn.Module):
     """
 
     def __init__(
-        self, in_dim: int, 
-        hidden_dim: int, 
-        out_dim: int, 
-        edge_dim: int, 
-        num_heads: int, 
-        node_size_of_dicts: list[int], 
+        self,
+        in_dim: int,
+        hidden_dim: int,
+        out_dim: int,
+        edge_dim: int,
+        num_heads: int,
+        node_size_of_dicts: list[int],
         edge_size_of_dicts: list[int],
-        emb_size: int
+        emb_size: int,
     ):
         super().__init__()
         self.emb_size = emb_size
         self.node_emb_layer = EmbeddingLayer(node_size_of_dicts, self.emb_size)
         self.edge_emb_layer = EmbeddingLayer(edge_size_of_dicts, self.emb_size)
         self._gat1 = GATConv(
-            self.emb_size*in_dim, 
-            hidden_dim, 
-            edge_dim=self.emb_size*edge_dim, 
-            heads=num_heads, 
-            concat=True
+            self.emb_size * in_dim,
+            hidden_dim,
+            edge_dim=self.emb_size * edge_dim,
+            heads=num_heads,
+            concat=True,
         )
         self._gat2 = GATConv(
             hidden_dim * num_heads,
             hidden_dim,
-            edge_dim=self.emb_size*edge_dim,
+            edge_dim=self.emb_size * edge_dim,
             heads=num_heads,
             concat=True,
         )
         self._gat3 = GATConv(
             hidden_dim * num_heads,
             out_dim,
-            edge_dim=self.emb_size*edge_dim,
+            edge_dim=self.emb_size * edge_dim,
             heads=num_heads,
             concat=False,
         )
@@ -90,10 +92,3 @@ class ThreeLayerGAT(torch.nn.Module):
         x = self._act3(x)
 
         return x
-
-
-            
-            
-
-    
-    

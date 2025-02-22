@@ -75,6 +75,7 @@ class SelfGraphDataset(InMemoryDataset):
 
         self.save(data_list, self.processed_paths[0])
 
+
 class LabeledGraphDataset(InMemoryDataset):
     def __init__(
         self, root, transform=None, pre_transform=None, pre_filter=None

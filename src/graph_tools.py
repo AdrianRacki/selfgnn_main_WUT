@@ -86,14 +86,14 @@ def from_rdmol(mol: Any) -> "torch_geometric.data.Data":  # type: ignore
     xs: List[List[int]] = []
     for atom in mol.GetAtoms():  # type: ignore
         row: List[int] = []
-        row.append(1+x_map['atomic_num'].index(atom.GetAtomicNum()))
-        row.append(1+x_map["chirality"].index(str(atom.GetChiralTag())))
-        row.append(1+x_map["degree"].index(atom.GetTotalDegree()))
-        row.append(1+x_map["formal_charge"].index(atom.GetFormalCharge()))
-        row.append(1+x_map["num_hs"].index(atom.GetTotalNumHs()))
-        row.append(1+x_map["hybridization"].index(str(atom.GetHybridization())))
-        row.append(1+x_map["is_aromatic"].index(atom.GetIsAromatic()))
-        row.append(1+x_map["is_in_ring"].index(atom.IsInRing()))
+        row.append(1 + x_map["atomic_num"].index(atom.GetAtomicNum()))
+        row.append(1 + x_map["chirality"].index(str(atom.GetChiralTag())))
+        row.append(1 + x_map["degree"].index(atom.GetTotalDegree()))
+        row.append(1 + x_map["formal_charge"].index(atom.GetFormalCharge()))
+        row.append(1 + x_map["num_hs"].index(atom.GetTotalNumHs()))
+        row.append(1 + x_map["hybridization"].index(str(atom.GetHybridization())))
+        row.append(1 + x_map["is_aromatic"].index(atom.GetIsAromatic()))
+        row.append(1 + x_map["is_in_ring"].index(atom.IsInRing()))
         xs.append(row)
 
     x = torch.tensor(xs, dtype=torch.long).view(-1, 8)  # 2nd number in view is node dim
@@ -104,10 +104,10 @@ def from_rdmol(mol: Any) -> "torch_geometric.data.Data":  # type: ignore
         j = bond.GetEndAtomIdx()
 
         e = []
-        e.append(1+e_map["bond_type"].index(str(bond.GetBondType())))
-        e.append(1+e_map["stereo"].index(str(bond.GetStereo())))
-        e.append(1+e_map["is_conjugated"].index(bond.GetIsConjugated()))
-        e.append(1+e_map["is_in_ring"].index(bond.IsInRing()))
+        e.append(1 + e_map["bond_type"].index(str(bond.GetBondType())))
+        e.append(1 + e_map["stereo"].index(str(bond.GetStereo())))
+        e.append(1 + e_map["is_conjugated"].index(bond.GetIsConjugated()))
+        e.append(1 + e_map["is_in_ring"].index(bond.IsInRing()))
 
         edge_indices += [[i, j], [j, i]]
         edge_attrs += [e, e]

@@ -4,7 +4,7 @@ from torch_geometric.data import Data
 from torch_geometric.utils import dropout_adj, mask_feature
 from typing import List
 
-
+# TODO: Fix augmentors to work on single graph, not on whole batch
 class Augmentor(ABC):
     """Base class for graph augmentors. DataBatch is also supported."""
 

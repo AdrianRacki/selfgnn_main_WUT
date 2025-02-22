@@ -1,5 +1,5 @@
 import torch
-from torch.nn import Linear, PReLU, BatchNorm1d
+from torch.nn import PReLU, BatchNorm1d, Embedding
 from torch_geometric.nn import GATv2Conv as GATConv
 from torch_geometric.nn.norm import GraphNorm
 
@@ -14,29 +14,43 @@ class ThreeLayerGAT(torch.nn.Module):
         out_dim (int): Output feature dimension. Typically equal to hidden_dim.
         edge_dim (int): Edge feature dimension.
         num_heads (int): Number of attention heads.
+        node_size_of_dicts (list[int]): Size of dicts for node embedding layers.
+        edge_size_of_dicts (list[int]): Size of dicts for edge embedding layers.
+        emb_size (int): Dimensionality of embedding for each feature.
     """
 
     def __init__(
-        self, in_dim: int, hidden_dim: int, out_dim: int, edge_dim: int, num_heads: int
+        self, in_dim: int, 
+        hidden_dim: int, 
+        out_dim: int, 
+        edge_dim: int, 
+        num_heads: int, 
+        node_size_of_dicts: list[int], 
+        edge_size_of_dicts: list[int],
+        emb_size: int
     ):
         super().__init__()
-        self._edgeMLP = Linear(edge_dim, hidden_dim)
-        self._nodeMLP = Linear(in_dim, hidden_dim)
-
+        self.emb_size = emb_size
+        self.node_emb_layer = EmbeddingLayer(node_size_of_dicts, self.emb_size)
+        self.edge_emb_layer = EmbeddingLayer(edge_size_of_dicts, self.emb_size)
         self._gat1 = GATConv(
-            hidden_dim, hidden_dim, edge_dim=hidden_dim, heads=num_heads, concat=True
+            self.emb_size*in_dim, 
+            hidden_dim, 
+            edge_dim=self.emb_size*edge_dim, 
+            heads=num_heads, 
+            concat=True
         )
         self._gat2 = GATConv(
             hidden_dim * num_heads,
             hidden_dim,
-            edge_dim=hidden_dim,
+            edge_dim=self.emb_size*edge_dim,
             heads=num_heads,
             concat=True,
         )
         self._gat3 = GATConv(
             hidden_dim * num_heads,
             out_dim,
-            edge_dim=hidden_dim,
+            edge_dim=self.emb_size*edge_dim,
             heads=num_heads,
             concat=False,
         )
@@ -59,8 +73,8 @@ class ThreeLayerGAT(torch.nn.Module):
         edge_attr: torch.Tensor,
         batch_index: torch.Tensor | None,
     ):
-        edge_attr = self._act_edge(self._norm_edge(self._edgeMLP(edge_attr)))
-        x = self._act_node(self._norm_node(self._nodeMLP(x), batch_index))
+        x = self.node_emb_layer(x)
+        edge_attr = self.edge_emb_layer(edge_attr)
 
         x = self._gat1(x, edge_index, edge_attr)
         x = self._norm1(x, batch_index)
@@ -75,3 +89,25 @@ class ThreeLayerGAT(torch.nn.Module):
         x = self._act3(x)
 
         return x
+
+class EmbeddingLayer(torch.nn.Module):
+    def __init__(
+        self, size_of_dicts: list[int], emb_size: int
+    ):
+        super().__init__()
+        self._in_features = len(size_of_dicts)
+        self.emb_layers = torch.nn.ModuleList()
+        for dict_size in size_of_dicts:
+            self.emb_layers.append(Embedding(num_embeddings=dict_size, embedding_dim=emb_size, padding_idx=0))
+    
+    def forward(self, x: torch.Tensor):
+        emb_list = []
+        for idx, layer in enumerate(self.emb_layers):
+            emb_list.append(layer(x[:, idx]))
+        x = torch.concatenate(emb_list, dim=1)
+        return x
+            
+            
+
+    
+    

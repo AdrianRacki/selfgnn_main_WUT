@@ -142,6 +142,16 @@ typing-extensions = ">=4"
 tz = ["backports.zoneinfo"]
 
 [[package]]
+name = "antlr4-python3-runtime"
+version = "4.9.3"
+description = "ANTLR 4.9.3 runtime for Python 3.7"
+optional = false
+python-versions = "*"
+files = [
+    {file = "antlr4-python3-runtime-4.9.3.tar.gz", hash = "sha256:f224469b4168294902bb1efa80a8bf7855f24c99aef99cbefc1bcd3cce77881b"},
+]
+
+[[package]]
 name = "appnope"
 version = "0.1.4"
 description = "Disable App Nap on macOS >= 10.9"
@@ -1134,6 +1144,22 @@ gevent = ["gevent (>=1.4.0)"]
 setproctitle = ["setproctitle"]
 testing = ["coverage", "eventlet", "gevent", "pytest", "pytest-cov"]
 tornado = ["tornado (>=0.2)"]
+
+[[package]]
+name = "hydra-core"
+version = "1.3.2"
+description = "A framework for elegantly configuring complex applications"
+optional = false
+python-versions = "*"
+files = [
+    {file = "hydra-core-1.3.2.tar.gz", hash = "sha256:8a878ed67216997c3e9d88a8e72e7b4767e81af37afb4ea3334b269a4390a824"},
+    {file = "hydra_core-1.3.2-py3-none-any.whl", hash = "sha256:fa0238a9e31df3373b35b0bfb672c34cc92718d21f81311d8996a16de1141d8b"},
+]
+
+[package.dependencies]
+antlr4-python3-runtime = "==4.9.*"
+omegaconf = ">=2.2,<2.4"
+packaging = "*"
 
 [[package]]
 name = "idna"
@@ -2157,6 +2183,21 @@ files = [
     {file = "nvidia_nvtx_cu12-12.4.127-py3-none-manylinux2014_x86_64.whl", hash = "sha256:781e950d9b9f60d8241ccea575b32f5105a5baf4c2351cab5256a24869f12a1a"},
     {file = "nvidia_nvtx_cu12-12.4.127-py3-none-win_amd64.whl", hash = "sha256:641dccaaa1139f3ffb0d3164b4b84f9d253397e38246a4f2f36728b48566d485"},
 ]
+
+[[package]]
+name = "omegaconf"
+version = "2.3.0"
+description = "A flexible configuration library"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "omegaconf-2.3.0-py3-none-any.whl", hash = "sha256:7b4df175cdb08ba400f45cae3bdcae7ba8365db4d165fc65fd04b050ab63b46b"},
+    {file = "omegaconf-2.3.0.tar.gz", hash = "sha256:d5d4b6d29955cc50ad50c46dc269bcd92c6e00f5f90d23ab5fee7bfca4ba4cc7"},
+]
+
+[package.dependencies]
+antlr4-python3-runtime = "==4.9.*"
+PyYAML = ">=5.1.0"
 
 [[package]]
 name = "opentelemetry-api"
@@ -3829,4 +3870,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "3.12.8"
-content-hash = "867bdbbe665b62feb1ca71e307c5ca82c3f6db111c4e37759d3c5f68d35cb073"
+content-hash = "0b02817e3769c0e1cfc712d3ccbfaef89b4a0e8b5011a3922c665c878606c9ef"

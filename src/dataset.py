@@ -65,8 +65,6 @@ class SelfGraphDataset(InMemoryDataset):
         for il in itertools.product(cations_df["cation"], anions_df["anion"]):
             il_smiles = ".".join(il)
             data = from_smiles(il_smiles)
-            data.x = data.x.float()
-            data.edge_attr = data.edge_attr.float()
             data_list.append(data)
 
         if self.pre_filter is not None:
@@ -102,8 +100,6 @@ class LabeledGraphDataset(InMemoryDataset):
             il_smiles = row["smiles"]
             mp = row["MP"]
             data = from_smiles(il_smiles)
-            data.x = data.x.float()
-            data.edge_attr = data.edge_attr.float()
             data.y = mp
             data_list.append(data)
 

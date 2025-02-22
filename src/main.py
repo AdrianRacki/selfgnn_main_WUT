@@ -13,7 +13,7 @@ from torch_geometric.loader import DataLoader
 from dataset import LabeledGraphDataset
 
 
-def train_predictor(
+def main(
     params: dict[str, Any], encoder: torch.nn.Module
 ) -> L.LightningModule:
     """

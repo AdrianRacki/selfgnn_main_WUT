@@ -10,7 +10,7 @@ from lightning.pytorch.callbacks import (
 from lightning.pytorch.loggers import CSVLogger
 from torch_geometric.loader import DataLoader
 
-from augmentors import Compose, EdgeRemoving, FeatureMasking
+from src.utils.augmentors import Compose, EdgeRemoving, FeatureMasking
 from dataset import SelfGraphDataset
 from losses import barlow_twins_loss
 

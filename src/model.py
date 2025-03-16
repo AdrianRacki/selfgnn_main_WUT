@@ -81,7 +81,7 @@ class GATEncoder(BaseEncoder):
         self.node_emb_layer = EmbeddingLayer(node_size_of_dicts, emb_size)
         self.edge_emb_layer = EmbeddingLayer(edge_size_of_dicts, emb_size)
         self.emb_pool = instantiate(global_pool)
-        
+
         # GAT layers
         self.gat_layers = ModuleList()
         self.norm_layers = ModuleList()
@@ -109,7 +109,7 @@ class GATEncoder(BaseEncoder):
             self.pool_layers.append(instantiate(global_pool))
             self.dropout_layers.append(torch.nn.Dropout(dropout_rate))
             input_dim = norm_dim
-            
+
         # Projector layer
         self.projector_layer: torch.nn.Module = instantiate(
             projector, in_features=concat_out_size
@@ -128,7 +128,7 @@ class GATEncoder(BaseEncoder):
         x = self.node_emb_layer(x)
         edge_attr = self.edge_emb_layer(edge_attr)
         embeddings.append(self.emb_pool(x, batch_index))
-        
+
         for i in range(self.num_layers):
             x = self.gat_layers[i](x, edge_index, edge_attr)
             x = self.norm_layers[i](x, batch_index)
@@ -137,7 +137,7 @@ class GATEncoder(BaseEncoder):
             embeddings.append(self.pool_layers[i](x, batch_index))
         x = torch.cat(embeddings, dim=-1)
         x = self.projector_layer(x)
-        
+
         if self.out_features == 1:
             x = x.squeeze()
         return x
@@ -159,4 +159,3 @@ class DoubleGraphPredictor(torch.nn.Module):
         x = torch.cat([x_1, x_2], dim=-1)
         x = self.final_projector_layer(x)
         return x
-

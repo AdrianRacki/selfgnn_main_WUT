@@ -1,5 +1,5 @@
 import hydra
-from omegaconf import OmegaConf, DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 
 def load_config(config_path: str = "config") -> DictConfig:

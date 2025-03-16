@@ -1,6 +1,8 @@
 from hydra.utils import instantiate
+
 from config_utils import load_config
 from module import GraphPredictor
+
 
 def main():
     print("Running main")
@@ -17,6 +19,7 @@ def main():
     trainer = instantiate(config.trainer.trainer, callbacks=callbacks)
     print("Training model")
     trainer.fit(module, datamodule.train_dataloader(), datamodule.val_dataloader())
+
 
 if __name__ == "__main__":
     main()

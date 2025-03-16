@@ -1,0 +1,26 @@
+dataset:
+  _target_: dataset.LabeledGraphDataset
+  root: /Users/adrianracki/Desktop/Projects/selfgnn_main/data
+  node_features:
+    sizes: [120, 10, 20, 10, 10, 10, 3, 3]
+    features:
+    - atomic_num
+    - chirality
+    - degree
+    - formal_charge
+    - hybridization
+    - num_hs
+    - is_aromatic
+    - is_in_ring
+  edge_features:
+    sizes: [20, 3, 3, 6]
+    features:
+    - bond_type
+    - is_conjugated
+    - is_in_ring
+    - stereo
+datamodule:
+  _target_: datamodule.GNNDataModule
+  batch_size: 32
+  data_split: 0.8
+  seed: 42

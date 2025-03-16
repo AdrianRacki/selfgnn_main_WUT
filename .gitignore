@@ -9,3 +9,6 @@ data/.DS_Store
 .DS_Store
 src/lightning_logs
 **/__pycache__/
+mlruns
+mlartifacts
+

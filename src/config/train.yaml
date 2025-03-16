@@ -1,0 +1,10 @@
+defaults:
+  - _self_
+  - callbacks: default
+  - data: labeled
+  - model: 3GAT
+  - trainer: default
+  - metrics: regression
+  
+
+

@@ -75,29 +75,47 @@ e_map: Dict[str, List[Any]] = {
 }
 
 
-def from_rdmol(mol: Any) -> "torch_geometric.data.Data":  # type: ignore
+def from_rdmol(
+    mol: Any,
+    node_features: List[str] = ['atomic_num', 'chirality', 'degree', 'formal_charge', 
+                              'num_hs', 'hybridization', 'is_aromatic', 'is_in_ring'],
+    edge_features: List[str] = ['bond_type', 'stereo', 'is_conjugated', 'is_in_ring']
+) -> "torch_geometric.data.Data":  # type: ignore
     r"""Converts a :class:`rdkit.Chem.Mol` instance to a
     :class:`torch_geometric.data.Data` instance.
 
     Args:
         mol (rdkit.Chem.Mol): The :class:`rdkit` molecule.
+        node_features (List[str], optional): Node features to include in the graph.
+        edge_features (List[str], optional): Edge features to include in the graph.
     """
     assert isinstance(mol, Chem.Mol)
 
     xs: List[List[int]] = []
     for atom in mol.GetAtoms():  # type: ignore
         row: List[int] = []
-        row.append(1 + x_map["atomic_num"].index(atom.GetAtomicNum()))
-        row.append(1 + x_map["chirality"].index(str(atom.GetChiralTag())))
-        row.append(1 + x_map["degree"].index(atom.GetTotalDegree()))
-        row.append(1 + x_map["formal_charge"].index(atom.GetFormalCharge()))
-        row.append(1 + x_map["num_hs"].index(atom.GetTotalNumHs()))
-        row.append(1 + x_map["hybridization"].index(str(atom.GetHybridization())))
-        row.append(1 + x_map["is_aromatic"].index(atom.GetIsAromatic()))
-        row.append(1 + x_map["is_in_ring"].index(atom.IsInRing()))
+        for feature in node_features:
+            if feature == 'atomic_num':
+                row.append(1 + x_map["atomic_num"].index(atom.GetAtomicNum()))
+            elif feature == 'chirality':
+                row.append(1 + x_map["chirality"].index(str(atom.GetChiralTag())))
+            elif feature == 'degree':
+                row.append(1 + x_map["degree"].index(atom.GetTotalDegree()))
+            elif feature == 'formal_charge':
+                row.append(1 + x_map["formal_charge"].index(atom.GetFormalCharge()))
+            elif feature == 'num_hs':
+                row.append(1 + x_map["num_hs"].index(atom.GetTotalNumHs()))
+            elif feature == 'num_radical_electrons':
+                row.append(1 + x_map["num_radical_electrons"].index(atom.GetNumRadicalElectrons()))
+            elif feature == 'hybridization':
+                row.append(1 + x_map["hybridization"].index(str(atom.GetHybridization())))
+            elif feature == 'is_aromatic':
+                row.append(1 + x_map["is_aromatic"].index(atom.GetIsAromatic()))
+            elif feature == 'is_in_ring':
+                row.append(1 + x_map["is_in_ring"].index(atom.IsInRing()))
         xs.append(row)
 
-    x = torch.tensor(xs, dtype=torch.long).view(-1, 8)  # 2nd number in view is node dim
+    x = torch.tensor(xs, dtype=torch.long).view(-1, len(node_features))
 
     edge_indices, edge_attrs = [], []
     for bond in mol.GetBonds():  # type: ignore
@@ -105,10 +123,15 @@ def from_rdmol(mol: Any) -> "torch_geometric.data.Data":  # type: ignore
         j = bond.GetEndAtomIdx()
 
         e = []
-        e.append(1 + e_map["bond_type"].index(str(bond.GetBondType())))
-        e.append(1 + e_map["stereo"].index(str(bond.GetStereo())))
-        e.append(1 + e_map["is_conjugated"].index(bond.GetIsConjugated()))
-        e.append(1 + e_map["is_in_ring"].index(bond.IsInRing()))
+        for feature in edge_features:
+            if feature == 'bond_type':
+                e.append(1 + e_map["bond_type"].index(str(bond.GetBondType())))
+            elif feature == 'stereo':
+                e.append(1 + e_map["stereo"].index(str(bond.GetStereo())))
+            elif feature == 'is_conjugated':
+                e.append(1 + e_map["is_conjugated"].index(bond.GetIsConjugated()))
+            elif feature == 'is_in_ring':
+                e.append(1 + e_map["is_in_ring"].index(bond.IsInRing()))
 
         edge_indices += [[i, j], [j, i]]
         edge_attrs += [e, e]
@@ -116,7 +139,7 @@ def from_rdmol(mol: Any) -> "torch_geometric.data.Data":  # type: ignore
     edge_index = torch.tensor(edge_indices)
     edge_index = edge_index.t().to(torch.long).view(2, -1)
     edge_attr = torch.tensor(edge_attrs, dtype=torch.long).view(
-        -1, 4
+        -1, len(edge_features)
     )  # 2nd number in view is edge dim
 
     if edge_index.numel() > 0:  # Sort indices.
@@ -130,6 +153,9 @@ def from_smiles(
     smiles: str,
     with_hydrogen: bool = False,
     kekulize: bool = False,
+    node_features: List[str] = ['atomic_num', 'chirality', 'degree', 'formal_charge', 
+                              'num_hs', 'hybridization', 'is_aromatic', 'is_in_ring'],
+    edge_features: List[str] = ['bond_type', 'stereo', 'is_conjugated', 'is_in_ring']
 ) -> "torch_geometric.data.Data":  # type: ignore
     r"""Converts a SMILES string to a :class:`torch_geometric.data.Data`
     instance.
@@ -140,6 +166,8 @@ def from_smiles(
             hydrogens in the molecule graph. (default: :obj:`False`)
         kekulize (bool, optional): If set to :obj:`True`, converts aromatic
             bonds to single/double bonds. (default: :obj:`False`)
+        node_features (List[str], optional): Node features to include in the graph.
+        edge_features (List[str], optional): Edge features to include in the graph.
     """
 
     RDLogger.DisableLog("rdApp.*")  # type: ignore
@@ -152,7 +180,7 @@ def from_smiles(
     if kekulize:
         Chem.Kekulize(mol)
 
-    data = from_rdmol(mol)
+    data = from_rdmol(mol, node_features=node_features, edge_features=edge_features)
     data.smiles = smiles
     return data
 

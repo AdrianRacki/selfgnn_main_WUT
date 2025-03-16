@@ -1,7 +1,7 @@
 notebooks
 notes.txt
 .vscode
-src/playground.ipynb
+src/test.ipynb
 data/processed
 data/.DS_Store
 .GBT
@@ -11,4 +11,4 @@ src/lightning_logs
 **/__pycache__/
 mlruns
 mlartifacts
-
+src/legacy

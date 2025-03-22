@@ -1,5 +1,5 @@
 _target_: model.GATEncoder
-emb_size: 8
+emb_size: 12
 hidden_dim: 32
 num_heads: 2
 node_size_of_dicts: ${data.dataset.node_features.sizes}
@@ -7,6 +7,7 @@ edge_size_of_dicts: ${data.dataset.edge_features.sizes}
 out_dim: 32
 num_layers: 2
 dropout_rate: 0.3
+use_global_features: False
 global_pool: 
   _target_: torch_geometric.nn.aggr.SoftmaxAggregation
   t: 2
@@ -15,6 +16,6 @@ projector:
   _target_: generic.MLP
   in_features: 1 # This is inferred inside the model
   out_features: 1
-  num_layers: 4
+  num_layers: 6
   use_norm: True
   dropout_rate: 0.3

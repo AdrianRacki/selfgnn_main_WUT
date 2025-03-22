@@ -19,6 +19,20 @@ dataset:
     - is_conjugated
     - is_in_ring
     - stereo
+  global_features:
+    features:
+    - MolLogP
+    - CalcKappa1
+    - CalcKappa2
+    - CalcKappa3
+    - CalcLabuteASA 
+    - Chi0
+    - Chi1
+    - ExactMolWt
+    - HeavyAtomMolWt 
+    - CalcFractionCSP3 
+    - CalcHallKierAlpha
+
 datamodule:
   _target_: datamodule.GNNDataModule
   batch_size: 32

@@ -1,7 +1,7 @@
 early_stopper:
   _target_: lightning.pytorch.callbacks.EarlyStopping
   monitor: val_PearsonCorrCoef
-  min_delta: 0.01
+  min_delta: 0.005
   patience: 5
   verbose: True
   mode: max
@@ -14,8 +14,8 @@ lr_monitor:
   log_weight_decay: False
 model_checkpoint:
   _target_: lightning.pytorch.callbacks.ModelCheckpoint
-  monitor: val_loss
-  mode: min
+  monitor: val_PearsonCorrCoef
+  mode: max
   save_top_k: 1
   dirpath: ./lightning_logs
   filename: best

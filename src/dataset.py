@@ -5,7 +5,7 @@ import pandas as pd
 from torch_geometric.data import InMemoryDataset
 from tqdm import tqdm
 
-from utils import from_smiles
+from utils import from_smiles, add_global_features
 
 
 class LabeledGraphDataset(InMemoryDataset):
@@ -14,12 +14,14 @@ class LabeledGraphDataset(InMemoryDataset):
         root,
         node_features,
         edge_features,
+        global_features,
         transform=None,
         pre_transform=None,
         pre_filter=None,
     ) -> None:
         self.node_features = node_features.features
         self.edge_features = edge_features.features
+        self.global_features = global_features.features
         super().__init__(root, transform, pre_transform, pre_filter)
         self.load(self.processed_paths[0])
 
@@ -46,6 +48,7 @@ class LabeledGraphDataset(InMemoryDataset):
                 edge_features=self.edge_features,
             )
             data.y = mp
+            data = add_global_features(self.global_features, data)
             data_list.append(data)
 
         if self.pre_filter is not None:

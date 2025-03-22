@@ -5,7 +5,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 from torch.nn import ModuleList, PReLU
 from torch_geometric.data import Data
-from torch_geometric.nn import GATv2Conv as GATConv
+from torch_geometric.nn import TransformerConv
 from torch_geometric.nn.norm import GraphNorm
 
 from generic import EmbeddingLayer
@@ -26,6 +26,7 @@ class BaseEncoder(ABC, torch.nn.Module):
         projector: DictConfig,
         global_pool: DictConfig,
         dropout_rate: float,
+        use_global_features: bool = True,
     ):
         super().__init__()
 
@@ -57,6 +58,7 @@ class GATEncoder(BaseEncoder):
         global_pool: DictConfig,
         num_layers: int = 3,
         dropout_rate: float = 0.5,
+        use_global_features: bool = True,
     ):
         super().__init__(
             hidden_dim=hidden_dim,
@@ -67,6 +69,7 @@ class GATEncoder(BaseEncoder):
             projector=projector,
             global_pool=global_pool,
             dropout_rate=dropout_rate,
+            use_global_features=use_global_features,
         )
         # Output features and dimensions
         node_dim = len(node_size_of_dicts)
@@ -74,8 +77,11 @@ class GATEncoder(BaseEncoder):
         concat_out_size = (
             node_dim * emb_size + (num_layers - 1) * hidden_dim * num_heads + hidden_dim
         )
+        if use_global_features:
+            concat_out_size += 11
         self.out_features = projector.out_features
         self.num_layers = num_layers
+        self.use_global_features = use_global_features
 
         # Embedding layers
         self.node_emb_layer = EmbeddingLayer(node_size_of_dicts, emb_size)
@@ -95,12 +101,13 @@ class GATEncoder(BaseEncoder):
             output_dim = out_dim if is_last_layer else hidden_dim
             concat = not is_last_layer
             self.gat_layers.append(
-                GATConv(
+                TransformerConv(
                     input_dim,
                     output_dim,
                     edge_dim=emb_size * edge_dim,
                     heads=num_heads,
                     concat=concat,
+                    beta=False,
                 )
             )
             norm_dim = output_dim if not concat else output_dim * num_heads
@@ -117,11 +124,12 @@ class GATEncoder(BaseEncoder):
 
     def forward(self, graph: Data):  # type: ignore
         # Unpack graph data
-        x, edge_index, edge_attr, batch_index = (
+        x, edge_index, edge_attr, batch_index, g = (
             graph.x,
             graph.edge_index,
             graph.edge_attr,
             graph.batch,
+            graph.g
         )
         embeddings = []
 
@@ -136,6 +144,8 @@ class GATEncoder(BaseEncoder):
             x = self.dropout_layers[i](x)
             embeddings.append(self.pool_layers[i](x, batch_index))
         x = torch.cat(embeddings, dim=-1)
+        if self.use_global_features:
+            x = torch.cat([x, g], dim=-1)
         x = self.projector_layer(x)
 
         if self.out_features == 1:

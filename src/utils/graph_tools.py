@@ -4,6 +4,7 @@ from typing import Any, Dict, List
 import torch
 import torch_geometric
 from rdkit import Chem, RDLogger
+from rdkit.Chem import rdMolDescriptors, GraphDescriptors, Descriptors
 from torch_geometric.data import Data
 
 x_map: Dict[str, List[Any]] = {
@@ -74,6 +75,67 @@ e_map: Dict[str, List[Any]] = {
     "is_in_ring": [False, True],
 }
 
+def add_global_features(global_features: List[str], graph: Data) -> Data:
+    g = []
+    smiles = graph.smiles
+    mol = Chem.MolFromSmiles(smiles)
+    if "CalcKappa1" in global_features:
+        try: 
+            g.append(float(rdMolDescriptors.CalcKappa1(mol)))
+        except:
+            g.append(0.0)
+    if "CalcKappa2" in global_features:
+        try:
+            g.append(float(rdMolDescriptors.CalcKappa2(mol)))
+        except:
+            g.append(0.0)
+    if "CalcKappa3" in global_features:
+        try:
+            g.append(float(rdMolDescriptors.CalcKappa3(mol)))
+        except:
+            g.append(0.0)
+    if "CalcLabuteASA" in global_features:
+        try:
+            g.append(float(rdMolDescriptors.CalcLabuteASA(mol)))
+        except:
+            g.append(0.0)
+    if "Chi0" in global_features:
+        try:
+            g.append(float(GraphDescriptors.Chi0(mol)))
+        except:
+            g.append(0.0)
+    if "Chi1" in global_features:
+        try:
+            g.append(float(GraphDescriptors.Chi1(mol)))
+        except:
+            g.append(0.0)
+    if "HeavyAtomMolWt" in global_features:
+        try:
+            g.append(float(Descriptors.HeavyAtomMolWt(mol)))
+        except:
+            g.append(0.0)
+    if "ExactMolWt" in global_features:
+        try:
+            g.append(float(Descriptors.ExactMolWt(mol)))
+        except:
+            g.append(0.0)
+    if "MolLogP" in global_features:
+        try:
+            g.append(float(Descriptors.MolLogP(mol)))
+        except:
+            g.append(0.0)
+    if "CalcFractionCSP3" in global_features:
+        try:
+            g.append(float(rdMolDescriptors.CalcFractionCSP3(mol)))
+        except:
+            g.append(0.0)
+    if "CalcHallKierAlpha" in global_features:
+        try:
+            g.append(float(rdMolDescriptors.CalcHallKierAlpha(mol)))
+        except:
+            g.append(0.0)
+    graph.g = torch.tensor(g, dtype=torch.float).view(1, -1)
+    return graph
 
 def from_rdmol(
     mol: Any,

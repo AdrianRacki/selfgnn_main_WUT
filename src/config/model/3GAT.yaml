@@ -8,6 +8,7 @@ out_dim: 32
 num_layers: 2
 dropout_rate: 0.3
 use_global_features: False
+beta: False
 global_pool: 
   _target_: torch_geometric.nn.aggr.SoftmaxAggregation
   t: 2

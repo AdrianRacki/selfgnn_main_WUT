@@ -27,6 +27,7 @@ class BaseEncoder(ABC, torch.nn.Module):
         global_pool: DictConfig,
         dropout_rate: float,
         use_global_features: bool = True,
+        beta: bool = False,
     ):
         super().__init__()
 
@@ -59,6 +60,7 @@ class GATEncoder(BaseEncoder):
         num_layers: int = 3,
         dropout_rate: float = 0.5,
         use_global_features: bool = True,
+        beta: bool = False,
     ):
         super().__init__(
             hidden_dim=hidden_dim,
@@ -70,6 +72,7 @@ class GATEncoder(BaseEncoder):
             global_pool=global_pool,
             dropout_rate=dropout_rate,
             use_global_features=use_global_features,
+            beta=beta,
         )
         # Output features and dimensions
         node_dim = len(node_size_of_dicts)
@@ -98,7 +101,7 @@ class GATEncoder(BaseEncoder):
 
         for i in range(self.num_layers):
             is_last_layer = i == self.num_layers - 1
-            output_dim = out_dim if is_last_layer else hidden_dim
+            output_dim = hidden_dim
             concat = not is_last_layer
             self.gat_layers.append(
                 TransformerConv(
@@ -107,7 +110,7 @@ class GATEncoder(BaseEncoder):
                     edge_dim=emb_size * edge_dim,
                     heads=num_heads,
                     concat=concat,
-                    beta=False,
+                    beta=beta,
                 )
             )
             norm_dim = output_dim if not concat else output_dim * num_heads

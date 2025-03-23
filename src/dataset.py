@@ -27,7 +27,7 @@ class LabeledGraphDataset(InMemoryDataset):
 
     @property
     def raw_file_names(self) -> List[str]:
-        return ["filtered_database.csv"]
+        return ["makarov_clean.csv"]
 
     @property
     def processed_file_names(self) -> List[str]:

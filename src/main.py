@@ -4,10 +4,10 @@ from config_utils import load_config
 from module import GraphPredictor
 
 
-def main():
+def main(overrides: list[str] | None = None):
     print("Running main")
     print("Loading config")
-    config = load_config()
+    config = load_config(overrides=overrides)
     print("Loading data")
     dataset = instantiate(config.data.dataset)
     datamodule = instantiate(config.data.datamodule, dataset=dataset)

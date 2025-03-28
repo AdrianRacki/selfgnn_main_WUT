@@ -16,6 +16,7 @@ class GraphPredictor(L.LightningModule):
         self.config = config
         self.batch_size = config.data.datamodule.batch_size
         self.model: torch.nn.Module = instantiate(config.model, _recursive_=False)
+        print(self.model)
         self.optimizer = instantiate(
             config.trainer.optimizer, params=self.model.parameters()
         )
@@ -41,7 +42,7 @@ class GraphPredictor(L.LightningModule):
     def training_step(self, batch) -> torch.Tensor:
         x, loss = self.step(batch)
         output = self.train_metrics(x, batch.y.squeeze())
-        self.log_dict(output, on_step=True, on_epoch=False, batch_size=self.batch_size)
+        self.log_dict(output, on_step=True, on_epoch=True, batch_size=self.batch_size)
         self.log(
             "train_loss", loss, on_step=True, on_epoch=True, batch_size=self.batch_size
         )

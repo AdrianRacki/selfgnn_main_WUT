@@ -1,9 +1,9 @@
 early_stopper:
   _target_: lightning.pytorch.callbacks.EarlyStopping
   monitor: val_PearsonCorrCoef
-  min_delta: 0.005
-  patience: 5
-  verbose: True
+  min_delta: 0.01
+  patience: 10
+  verbose: False
   mode: max
   strict: True
   check_finite: True

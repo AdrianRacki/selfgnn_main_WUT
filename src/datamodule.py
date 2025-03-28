@@ -34,8 +34,9 @@ class GNNDataModule(pl.LightningDataModule):
         torch.manual_seed(self.seed)
         train_size = int(len(self.dataset) * self.data_split)
         val_size = len(self.dataset) - train_size
+        generator = torch.Generator().manual_seed(self.seed)
         self.train_dataset, self.val_dataset = random_split(
-            self.dataset, [train_size, val_size]
+            self.dataset, [train_size, val_size], generator
         )
 
     def train_dataloader(self):

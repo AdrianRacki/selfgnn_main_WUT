@@ -19,7 +19,6 @@ class BaseEncoder(ABC, torch.nn.Module):
     def __init__(
         self,
         hidden_dim: int,
-        out_dim: int,
         node_size_of_dicts: list[int],
         edge_size_of_dicts: list[int],
         emb_size: int,
@@ -50,7 +49,6 @@ class GATEncoder(BaseEncoder):
     def __init__(
         self,
         hidden_dim: int,
-        out_dim: int,
         num_heads: int,
         node_size_of_dicts: list[int],
         edge_size_of_dicts: list[int],
@@ -64,7 +62,6 @@ class GATEncoder(BaseEncoder):
     ):
         super().__init__(
             hidden_dim=hidden_dim,
-            out_dim=out_dim,
             node_size_of_dicts=node_size_of_dicts,
             edge_size_of_dicts=edge_size_of_dicts,
             emb_size=emb_size,
@@ -78,7 +75,7 @@ class GATEncoder(BaseEncoder):
         node_dim = len(node_size_of_dicts)
         edge_dim = len(edge_size_of_dicts)
         concat_out_size = (
-            node_dim * emb_size + (num_layers - 1) * hidden_dim * num_heads + hidden_dim
+            node_dim * emb_size + (hidden_dim * num_heads) + edge_dim * emb_size
         )
         if use_global_features:
             concat_out_size += 11
@@ -89,6 +86,8 @@ class GATEncoder(BaseEncoder):
         # Embedding layers
         self.node_emb_layer = EmbeddingLayer(node_size_of_dicts, emb_size)
         self.edge_emb_layer = EmbeddingLayer(edge_size_of_dicts, emb_size)
+        self.node_pool = instantiate(global_pool)
+        self.edge_pool = instantiate(global_pool)
         self.emb_pool = instantiate(global_pool)
 
         # GAT layers
@@ -100,25 +99,21 @@ class GATEncoder(BaseEncoder):
         self.dropout_layers = ModuleList()
 
         for i in range(self.num_layers):
-            is_last_layer = i == self.num_layers - 1
             output_dim = hidden_dim
-            concat = not is_last_layer
             self.gat_layers.append(
                 TransformerConv(
                     input_dim,
                     output_dim,
                     edge_dim=emb_size * edge_dim,
                     heads=num_heads,
-                    concat=concat,
+                    concat=True,
                     beta=beta,
+                    dropout=dropout_rate,
                 )
             )
-            norm_dim = output_dim if not concat else output_dim * num_heads
-            self.norm_layers.append(GraphNorm(norm_dim))
+            input_dim = output_dim * num_heads
+            self.norm_layers.append(GraphNorm(input_dim))
             self.act_layers.append(PReLU())
-            self.pool_layers.append(instantiate(global_pool))
-            self.dropout_layers.append(torch.nn.Dropout(dropout_rate))
-            input_dim = norm_dim
 
         # Projector layer
         self.projector_layer: torch.nn.Module = instantiate(
@@ -132,28 +127,35 @@ class GATEncoder(BaseEncoder):
             graph.edge_index,
             graph.edge_attr,
             graph.batch,
-            graph.g
+            graph.g,
         )
         embeddings = []
 
         x = self.node_emb_layer(x)
         edge_attr = self.edge_emb_layer(edge_attr)
-        embeddings.append(self.emb_pool(x, batch_index))
+        embeddings.append(self.node_pool(x, batch_index))
+
+        edge_src = edge_index[0]  # type: ignore
+        edge_batch = batch_index[edge_src]  # type: ignore
+        embeddings.append(self.edge_pool(edge_attr, edge_batch))
 
         for i in range(self.num_layers):
+            fx = x
             x = self.gat_layers[i](x, edge_index, edge_attr)
             x = self.norm_layers[i](x, batch_index)
             x = self.act_layers[i](x)
-            x = self.dropout_layers[i](x)
-            embeddings.append(self.pool_layers[i](x, batch_index))
-        x = torch.cat(embeddings, dim=-1)
+            x = x + fx if i > 0 else x  # Residual connection
+        x = self.emb_pool(x, batch_index)
+
         if self.use_global_features:
             x = torch.cat([x, g], dim=-1)
-        x = self.projector_layer(x)
+
+        x = torch.cat(embeddings + [x], dim=-1)
+        x, mol_emb = self.projector_layer(x)
 
         if self.out_features == 1:
             x = x.squeeze()
-        return x
+        return x, mol_emb
 
 
 class DoubleGraphPredictor(torch.nn.Module):

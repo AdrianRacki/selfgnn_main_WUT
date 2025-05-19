@@ -21,7 +21,7 @@ trainer:
   log_every_n_steps: 10
   logger:
     _target_: lightning.pytorch.loggers.mlflow.MLFlowLogger
-    experiment_name: default
+    experiment_name: MP_${run_name}
     run_name: ${run_name}
     tracking_uri: http://127.0.0.1:5000
     save_dir: ./mlruns

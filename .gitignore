@@ -12,3 +12,5 @@ src/lightning_logs
 mlruns
 mlartifacts
 src/legacy
+.lightning_logs
+src/hptuning.py

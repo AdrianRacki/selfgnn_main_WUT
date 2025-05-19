@@ -1,4 +1,3 @@
-import itertools
 from typing import List
 
 import pandas as pd
@@ -14,6 +13,8 @@ class LabeledGraphDataset(InMemoryDataset):
         root,
         node_features,
         edge_features,
+        raw_filename: str,
+        processed_filename: str,
         global_features,
         transform=None,
         pre_transform=None,
@@ -22,16 +23,18 @@ class LabeledGraphDataset(InMemoryDataset):
         self.node_features = node_features.features
         self.edge_features = edge_features.features
         self.global_features = global_features.features
+        self.raw_filename = [raw_filename]
+        self.processed_filename = [processed_filename]
         super().__init__(root, transform, pre_transform, pre_filter)
         self.load(self.processed_paths[0])
 
     @property
     def raw_file_names(self) -> List[str]:
-        return ["makarov_clean.csv"]
+        return self.raw_filename
 
     @property
     def processed_file_names(self) -> List[str]:
-        return ["labeled_graph_dataset.pt"]
+        return self.processed_filename
 
     def download(self) -> None:
         pass
@@ -60,85 +63,4 @@ class LabeledGraphDataset(InMemoryDataset):
         self.save(data_list, self.processed_paths[0])
 
 
-class SelfGraphDataset(InMemoryDataset):
-    """Defines torch_geometric.data.InMemoryDataset implementation to
-    create dataset of all combinations of ions in from to .csv files.
 
-    Args:
-        InMemoryDataset (torch_geometric.data.InMemoryDataset): Base class
-        for creating PyG InMemoryDatasets.
-    """
-
-    def __init__(
-        self,
-        root,
-        node_features,
-        edge_features,
-        transform=None,
-        pre_transform=None,
-        pre_filter=None,
-    ) -> None:
-        self.node_features = node_features.features
-        self.edge_features = edge_features.features
-        super().__init__(root, transform, pre_transform, pre_filter)
-        self.load(self.processed_paths[0])
-
-    @property
-    def raw_file_names(self) -> List[str]:
-        """
-        Returns the list of raw file names required for the dataset.
-
-        This method defines the filenames of the input raw files that are
-        necessary for the dataset. These files are expected to be located
-        in the raw data directory.
-
-        Returns:
-            List[str]: A list containing the filenames of the raw input files.
-        """
-        return ["cations.csv", "anions.csv"]
-
-    @property
-    def processed_file_names(self) -> List[str]:
-        """
-        Defines the filenames of the output processed files.
-
-        This method returns a list of filenames that represent the processed
-        graph dataset files. These files are typically used for storing
-        preprocessed data that can be quickly loaded for training or inference
-        purposes.
-
-        Returns:
-            List[str]: A list containing the filenames of the processed graph
-            dataset files.
-        """
-        return ["graph_dataset.pt"]
-
-    def download(self) -> None:
-        """Not implemented - files are stored locally."""
-        pass
-
-    def process(self) -> None:
-        """Takes data from raw directory and generate list of Data (graph) to save as processed.
-        Possible filters and pre-transforms on each element of data list."""
-        cations_df = pd.read_csv(self.raw_paths[0])
-        anions_df = pd.read_csv(self.raw_paths[1])
-        data_list = []
-        for il in tqdm(
-            itertools.product(cations_df["cation"], anions_df["anion"]),
-            desc="Processing data",
-        ):
-            il_smiles = ".".join(il)
-            data = from_smiles(
-                smiles=il_smiles,
-                node_features=self.node_features,
-                edge_features=self.edge_features,
-            )
-            data_list.append(data)
-
-        if self.pre_filter is not None:
-            data_list = [data for data in data_list if self.pre_filter(data)]
-
-        if self.pre_transform is not None:
-            data_list = [self.pre_transform(data) for data in data_list]
-
-        self.save(data_list, self.processed_paths[0])

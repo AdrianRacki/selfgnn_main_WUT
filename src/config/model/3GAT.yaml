@@ -1,11 +1,10 @@
 _target_: model.GATEncoder
-emb_size: 4
-hidden_dim: 64
+emb_size: 8
+hidden_dim: 32
 num_heads: 4
 node_size_of_dicts: ${data.dataset.node_features.sizes}
 edge_size_of_dicts: ${data.dataset.edge_features.sizes}
-out_dim: 32
-num_layers: 6
+num_layers: 3
 dropout_rate: 0.3
 use_global_features: False
 beta: False
@@ -14,9 +13,7 @@ global_pool:
   t: 2
   learn: True
 projector:
-  _target_: generic.MLP
-  in_features: 1 # This is inferred inside the model
-  out_features: 1
-  num_layers: 6
-  use_norm: True
+  _target_: generic.Projector
+  in_features: 1
+  out_features: 1 # This is inferred inside the model
   dropout_rate: 0.3

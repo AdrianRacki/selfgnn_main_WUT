@@ -44,7 +44,7 @@ class LabeledGraphDataset(InMemoryDataset):
         data_list = []
         for _, row in tqdm(df.iterrows(), desc="Processing data", total=len(df)):
             il_smiles = row["smiles"]
-            mp = row["MP"]
+            mp = row["value"]
             data = from_smiles(
                 smiles=il_smiles,
                 node_features=self.node_features,

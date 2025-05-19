@@ -7,10 +7,9 @@ data/.DS_Store
 .GBT
 .gitignore
 .DS_Store
-src/lightning_logs
 **/__pycache__/
 mlruns
 mlartifacts
 src/legacy
-.lightning_logs
 src/hptuning.py
+lightning_logs

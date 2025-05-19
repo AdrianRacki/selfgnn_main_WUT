@@ -1,10 +1,10 @@
 early_stopper:
   _target_: lightning.pytorch.callbacks.EarlyStopping
-  monitor: val_MeanAbsoluteError
+  monitor: val_R2Score
   min_delta: 0.01
   patience: 10
   verbose: False
-  mode: min
+  mode: max
   strict: True
   check_finite: True
 lr_monitor:
@@ -14,11 +14,11 @@ lr_monitor:
   log_weight_decay: False
 model_checkpoint:
   _target_: lightning.pytorch.callbacks.ModelCheckpoint
-  monitor: val_PearsonCorrCoef
+  monitor: val_R2Score
   mode: max
   save_top_k: 1
   dirpath: ./lightning_logs
-  filename: best
+  filename: ${run_name}_best
 parity_plotter:
   _target_: utils.parity_plot_callback.ParityPlotCallback
 

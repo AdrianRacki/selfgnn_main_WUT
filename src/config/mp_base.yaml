@@ -8,4 +8,3 @@ defaults:
   
 run_name: mp_default
 
-data.datamodule.seed: 42

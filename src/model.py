@@ -75,7 +75,7 @@ class GATEncoder(BaseEncoder):
         node_dim = len(node_size_of_dicts)
         edge_dim = len(edge_size_of_dicts)
         concat_out_size = (
-            node_dim * emb_size + (hidden_dim * num_heads) + edge_dim * emb_size
+            node_dim * emb_size + (hidden_dim * num_heads) 
         )
         if use_global_features:
             concat_out_size += 11
@@ -87,7 +87,6 @@ class GATEncoder(BaseEncoder):
         self.node_emb_layer = EmbeddingLayer(node_size_of_dicts, emb_size)
         self.edge_emb_layer = EmbeddingLayer(edge_size_of_dicts, emb_size)
         self.node_pool = instantiate(global_pool)
-        self.edge_pool = instantiate(global_pool)
         self.emb_pool = instantiate(global_pool)
 
         # GAT layers
@@ -134,10 +133,6 @@ class GATEncoder(BaseEncoder):
         x = self.node_emb_layer(x)
         edge_attr = self.edge_emb_layer(edge_attr)
         embeddings.append(self.node_pool(x, batch_index))
-
-        edge_src = edge_index[0]  # type: ignore
-        edge_batch = batch_index[edge_src]  # type: ignore
-        embeddings.append(self.edge_pool(edge_attr, edge_batch))
 
         for i in range(self.num_layers):
             fx = x

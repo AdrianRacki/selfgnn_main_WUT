@@ -13,3 +13,5 @@ mlartifacts
 src/legacy
 src/hptuning.py
 lightning_logs
+checkpoints
+optuna_study.db

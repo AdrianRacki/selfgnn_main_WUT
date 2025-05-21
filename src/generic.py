@@ -93,7 +93,7 @@ class Projector(torch.nn.Module):
         self.dropout = torch.nn.ModuleList()
         self.out_features = out_features
         
-        sizes = [in_features, 64, 32, 16, 1]
+        sizes = [in_features, 48, 32, 16, 1]
         
         for i in range(len(sizes) - 1):
             self.layers.append(torch.nn.Linear(sizes[i], sizes[i+1]))

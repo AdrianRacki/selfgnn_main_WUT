@@ -2,7 +2,7 @@ early_stopper:
   _target_: lightning.pytorch.callbacks.EarlyStopping
   monitor: val_R2Score
   min_delta: 0.01
-  patience: 10
+  patience: 15
   verbose: False
   mode: max
   strict: True
@@ -17,9 +17,10 @@ model_checkpoint:
   monitor: val_R2Score
   mode: max
   save_top_k: 1
-  dirpath: ./lightning_logs
+  dirpath: ./checkpoints
   filename: ${run_name}_best
 parity_plotter:
   _target_: utils.parity_plot_callback.ParityPlotCallback
+  run_name: ${run_name}
 
 

@@ -1,7 +1,7 @@
 _target_: model.GATEncoder
-emb_size: 8
-hidden_dim: 32
-num_heads: 4
+emb_size: 4
+hidden_dim: 16
+num_heads: 2
 node_size_of_dicts: ${data.dataset.node_features.sizes}
 edge_size_of_dicts: ${data.dataset.edge_features.sizes}
 num_layers: 3

@@ -12,7 +12,7 @@ class ParityPlotCallback(L.Callback):
     PyTorch Lightning callback that creates and logs parity plots to MLflow.
     """
 
-    def __init__(self, plot_every_n_epochs: int = 1):
+    def __init__(self, run_name: str, plot_every_n_epochs: int = 1,):
         """
         Initialize the callback.
 
@@ -20,6 +20,7 @@ class ParityPlotCallback(L.Callback):
             plot_every_n_epochs: Generate and log parity plot every N epochs
         """
         super().__init__()
+        self.run_name = run_name
         self.plot_every_n_epochs = plot_every_n_epochs
         self.val_predictions: List[torch.Tensor] = []
         self.val_targets: List[torch.Tensor] = []
@@ -72,7 +73,7 @@ class ParityPlotCallback(L.Callback):
             # Log to MLflow
             if trainer.logger and hasattr(trainer.logger, "experiment"):
                 # Log the plot as an artifact
-                mlflow.log_figure(fig, f"parity_plot_epoch_{current_epoch}.png")
+                mlflow.log_figure(fig, f"parity_plot_epoch_{current_epoch}_{self.run_name}.png")
 
                 # Close the figure to prevent memory leaks
                 plt.close(fig)

@@ -1,8 +1,8 @@
 dataset:
   _target_: dataset.LabeledGraphDataset
   root: /Users/adrianracki/Desktop/Projects/selfgnn_main/data
-  raw_filename: raw_mp.csv 
-  processed_filename: processed_mp.pt
+  raw_filename: raw_heat_capacity.csv 
+  processed_filename: processed_heat_capacity.pt
   node_features:
     sizes: [120, 10, 20, 10, 10, 10, 3, 3]
     features:
@@ -37,6 +37,6 @@ dataset:
 
 datamodule:
   _target_: datamodule.GNNDataModule
-  batch_size: 24
+  batch_size: 16
   data_split: 0.8
   seed: 42

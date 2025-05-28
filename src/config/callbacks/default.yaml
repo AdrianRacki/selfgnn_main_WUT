@@ -12,15 +12,15 @@ lr_monitor:
   logging_interval: step
   log_momentum: False
   log_weight_decay: False
-model_checkpoint:
-  _target_: lightning.pytorch.callbacks.ModelCheckpoint
-  monitor: val_R2Score
-  mode: max
-  save_top_k: 1
-  dirpath: ./checkpoints
-  filename: ${run_name}_best
-parity_plotter:
-  _target_: utils.parity_plot_callback.ParityPlotCallback
-  run_name: ${run_name}
+# model_checkpoint:
+#   _target_: lightning.pytorch.callbacks.ModelCheckpoint
+#   monitor: val_R2Score
+#   mode: max
+#   save_top_k: 1
+#   dirpath: ./checkpoints
+#   filename: ${run_name}_best
+# parity_plotter:
+#   _target_: utils.parity_plot_callback.ParityPlotCallback
+#   run_name: ${run_name}
 
 

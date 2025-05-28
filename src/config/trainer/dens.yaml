@@ -1,7 +1,7 @@
 optimizer:
   _target_: torch.optim.AdamW
-  lr: 0.0006594066019128369
-  weight_decay: 2.7362409906649225e-05
+  lr: 0.009714801292509857
+  weight_decay: 0.0031901366426996315
 scheduler:
   _target_: torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
   T_0: 5
@@ -21,7 +21,7 @@ trainer:
   log_every_n_steps: 10
   logger:
     _target_: lightning.pytorch.loggers.mlflow.MLFlowLogger
-    experiment_name: MP_10fold
+    experiment_name: Dens_10fold
     run_name: ${run_name}
     tracking_uri: http://127.0.0.1:5000
     save_dir: ./mlruns

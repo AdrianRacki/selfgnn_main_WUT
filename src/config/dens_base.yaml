@@ -1,0 +1,10 @@
+defaults:
+  - _self_
+  - callbacks: default
+  - data: dens
+  - model: 3GAT
+  - trainer: dens
+  - metrics: regression
+  
+run_name: dens_default
+

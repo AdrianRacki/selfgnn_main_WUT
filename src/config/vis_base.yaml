@@ -1,0 +1,10 @@
+defaults:
+  - _self_
+  - callbacks: default
+  - data: vis
+  - model: 3GAT
+  - trainer: vis
+  - metrics: regression
+  
+run_name: vis_default
+

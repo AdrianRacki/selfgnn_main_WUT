@@ -2,7 +2,7 @@ defaults:
   - _self_
   - callbacks: default
   - data: heat
-  - model: 3GAT
+  - model: MoE
   - trainer: heat
   - metrics: regression
   

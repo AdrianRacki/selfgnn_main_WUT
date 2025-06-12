@@ -1,0 +1,23 @@
+_target_: model.GraphModelWrapper
+experts:
+  - _target_: model.GATEncoder
+    hidden_dim: 16
+    num_heads: 2
+    node_size_of_dicts: ${data.dataset.node_features.sizes}
+    edge_size_of_dicts: ${data.dataset.edge_features.sizes}
+  - _target_: model.GINEncoder
+    hidden_dim: 16
+    node_size_of_dicts: ${data.dataset.node_features.sizes}
+    edge_size_of_dicts: ${data.dataset.edge_features.sizes}
+  - _target_: model.ARMAEncoder
+    hidden_dim: 16
+    node_size_of_dicts: ${data.dataset.node_features.sizes}
+    edge_size_of_dicts: ${data.dataset.edge_features.sizes}
+  - _target_: model.EGConvEncoder
+    hidden_dim: 16
+    node_size_of_dicts: ${data.dataset.node_features.sizes}
+    edge_size_of_dicts: ${data.dataset.edge_features.sizes}
+  - _target_: model.NNConvEncoder
+    hidden_dim: 16
+    node_size_of_dicts: ${data.dataset.node_features.sizes}
+    edge_size_of_dicts: ${data.dataset.edge_features.sizes}

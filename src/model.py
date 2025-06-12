@@ -3,125 +3,97 @@ from abc import ABC, abstractmethod
 import torch
 from hydra.utils import instantiate
 from omegaconf import DictConfig
-from torch.nn import ModuleList, PReLU
+from torch.nn import ModuleList, PReLU, Linear, Sequential
 from torch_geometric.data import Data
-from torch_geometric.nn import TransformerConv
+from torch_geometric.nn import TransformerConv, GCNConv, GINConv, ARMAConv, EGConv, NNConv
 from torch_geometric.nn.norm import GraphNorm
 
-from generic import EmbeddingLayer
+from generic import EmbeddingLayer, GatingModule, Projector
 
+DEFAULT_GLOBAL_POOL = DictConfig({
+    "_target_": "torch_geometric.nn.aggr.SoftmaxAggregation",
+    "t": 2,
+    "learn": True})
+
+class GraphModelWrapper(torch.nn.Module):
+    def __init__(self, experts: list[DictConfig]) -> None:
+        super().__init__()
+        
+        self.experts = ModuleList([instantiate(expert) for expert in experts])
+        self.gating_module = GatingModule(
+            num_experts=len(self.experts),
+            expert_output_dim=self.experts[0].out_features,
+        )
+        self.projector_layer = Projector(in_features=self.experts[0].out_features)
+        
+    def forward(self, graph: Data) -> tuple[torch.Tensor, torch.Tensor]:
+        expert_outputs = [expert(graph) for expert in self.experts]
+        expert_outputs = torch.cat(expert_outputs, dim=1)
+        weighted_output, gate_weights = self.gating_module(expert_outputs)
+        output = self.projector_layer(weighted_output).squeeze()
+        return output, gate_weights
 
 class BaseEncoder(ABC, torch.nn.Module):
-    """
-    Abstract base class for all encoders.
-    """
-
-    def __init__(
+    def __init__( 
         self,
-        hidden_dim: int,
         node_size_of_dicts: list[int],
         edge_size_of_dicts: list[int],
-        emb_size: int,
-        projector: DictConfig,
-        global_pool: DictConfig,
-        dropout_rate: float,
-        use_global_features: bool = True,
-        beta: bool = False,
+        global_pool: DictConfig = DEFAULT_GLOBAL_POOL,
+        emb_size: int = 4,
+        num_layers: int = 3,
+        out_features: int = 32,
     ):
         super().__init__()
-
-    @abstractmethod
-    def forward(
-        self,
-        x: torch.Tensor,
-        edge_index: torch.Tensor,
-        edge_attr: torch.Tensor,
-        batch_index: torch.Tensor | None,
-    ):
-        pass
-
-
-class GATEncoder(BaseEncoder):
-    """
-    A configurable Graph Attention Network (GAT) model with a variable number of layers.
-    """
-
-    def __init__(
-        self,
-        hidden_dim: int,
-        num_heads: int,
-        node_size_of_dicts: list[int],
-        edge_size_of_dicts: list[int],
-        emb_size: int,
-        projector: DictConfig,
-        global_pool: DictConfig,
-        num_layers: int = 3,
-        dropout_rate: float = 0.5,
-        use_global_features: bool = True,
-        beta: bool = False,
-    ):
-        super().__init__(
-            hidden_dim=hidden_dim,
-            node_size_of_dicts=node_size_of_dicts,
-            edge_size_of_dicts=edge_size_of_dicts,
-            emb_size=emb_size,
-            projector=projector,
-            global_pool=global_pool,
-            dropout_rate=dropout_rate,
-            use_global_features=use_global_features,
-            beta=beta,
-        )
-        # Output features and dimensions
-        node_dim = len(node_size_of_dicts)
-        edge_dim = len(edge_size_of_dicts)
-        concat_out_size = (
-            node_dim * emb_size + (hidden_dim * num_heads) 
-        )
-        if use_global_features:
-            concat_out_size += 11
-        self.out_features = projector.out_features
+        
+        self.emb_size = emb_size
         self.num_layers = num_layers
-        self.use_global_features = use_global_features
+        self.out_features = out_features
+        
+        self.node_dim = len(node_size_of_dicts)
+        self.edge_dim = len(edge_size_of_dicts)
 
-        # Embedding layers
         self.node_emb_layer = EmbeddingLayer(node_size_of_dicts, emb_size)
         self.edge_emb_layer = EmbeddingLayer(edge_size_of_dicts, emb_size)
         self.node_pool = instantiate(global_pool)
         self.emb_pool = instantiate(global_pool)
-
-        # GAT layers
-        self.gat_layers = ModuleList()
+        
+        self.gnn_layers = self._get_gnn_layers()
         self.norm_layers = ModuleList()
         self.act_layers = ModuleList()
-        self.pool_layers = ModuleList()
-        input_dim = emb_size * node_dim
-        self.dropout_layers = ModuleList()
-
+        
+        gnn_output_dim = self._get_gnn_output_dim()
+        concat_out_size = self.node_dim * emb_size + gnn_output_dim
+        
         for i in range(self.num_layers):
-            output_dim = hidden_dim
-            self.gat_layers.append(
-                TransformerConv(
-                    input_dim,
-                    output_dim,
-                    edge_dim=emb_size * edge_dim,
-                    heads=num_heads,
-                    concat=True,
-                    beta=beta,
-                    dropout=dropout_rate,
-                )
-            )
-            input_dim = output_dim * num_heads
-            self.norm_layers.append(GraphNorm(input_dim))
+            layer_input_dim = self._get_layer_input_dim(i)
+            self.norm_layers.append(GraphNorm(layer_input_dim))
             self.act_layers.append(PReLU())
-
-        # Projector layer
-        self.projector_layer: torch.nn.Module = instantiate(
-            projector, in_features=concat_out_size
+        
+        self.projector_layer: torch.nn.Module = Projector(
+            in_features=concat_out_size,
+            out_features=self.out_features,
         )
+
+    @abstractmethod
+    def _get_gnn_layers(self) -> ModuleList:
+        pass
+    
+    @abstractmethod
+    def _get_gnn_output_dim(self) -> int:
+        pass
+    
+    @abstractmethod
+    def _get_layer_input_dim(self, layer_idx: int) -> int:
+        pass
+    
+    @property
+    @abstractmethod
+    def use_edge_weights(self) -> bool:
+        pass
 
     def forward(self, graph: Data):  # type: ignore
         # Unpack graph data
-        x, edge_index, edge_attr, batch_index, g = (
+        x, edge_index, edge_attr, batch_index, _ = (
             graph.x,
             graph.edge_index,
             graph.edge_attr,
@@ -136,36 +108,362 @@ class GATEncoder(BaseEncoder):
 
         for i in range(self.num_layers):
             fx = x
-            x = self.gat_layers[i](x, edge_index, edge_attr)
+            if self.use_edge_weights:
+                x = self.gnn_layers[i](x, edge_index, edge_attr)
+            else:
+                x = self.gnn_layers[i](x, edge_index)
             x = self.norm_layers[i](x, batch_index)
             x = self.act_layers[i](x)
             x = x + fx if i > 0 else x  # Residual connection
+        
         x = self.emb_pool(x, batch_index)
-
-        if self.use_global_features:
-            x = torch.cat([x, g], dim=-1)
-
         x = torch.cat(embeddings + [x], dim=-1)
-        x, mol_emb = self.projector_layer(x)
-
-        if self.out_features == 1:
-            x = x.squeeze()
-        return x, mol_emb
+        x = self.projector_layer(x)
+        return x
 
 
-class DoubleGraphPredictor(torch.nn.Module):
-    def __init__(self, encoder: DictConfig, projector: DictConfig):
-        super().__init__()
-        self.encoder_1: BaseEncoder = instantiate(encoder, _recursive_=False)
-        self.encoder_2: BaseEncoder = instantiate(encoder, _recursive_=False)
-        self.final_projector_layer = instantiate(
-            projector,
-            in_features=(self.encoder_1.out_features + self.encoder_2.out_features),
+class GATEncoder(BaseEncoder):
+    def __init__(
+        self,
+        hidden_dim: int,
+        num_heads: int,
+        node_size_of_dicts: list[int],
+        edge_size_of_dicts: list[int],
+        emb_size: int = 4,
+        global_pool: DictConfig = DEFAULT_GLOBAL_POOL,
+        num_layers: int = 3,
+        out_features: int = 32,
+        dropout_rate: float = 0.3,
+    ):
+        self.hidden_dim = hidden_dim
+        self.num_heads = num_heads
+        self.dropout_rate = dropout_rate
+        
+        super().__init__(
+            node_size_of_dicts=node_size_of_dicts,
+            edge_size_of_dicts=edge_size_of_dicts,
+            emb_size=emb_size,
+            global_pool=global_pool,
+            num_layers=num_layers,
+            out_features=out_features,
         )
 
-    def forward(self, graph_1: Data, graph_2: Data):
-        x_1 = self.encoder_1(graph_1)
-        x_2 = self.encoder_2(graph_2)
-        x = torch.cat([x_1, x_2], dim=-1)
-        x = self.final_projector_layer(x)
-        return x
+    def _get_gnn_layers(self) -> ModuleList:
+        gnn_layers = ModuleList()
+        input_dim = self.emb_size * self.node_dim
+        
+        for i in range(self.num_layers):
+            output_dim = self.hidden_dim
+            gnn_layers.append(
+                TransformerConv(
+                    input_dim,
+                    output_dim,
+                    edge_dim=self.emb_size * self.edge_dim,
+                    heads=self.num_heads,
+                    concat=True,
+                    beta=False,
+                    dropout=self.dropout_rate,
+                )
+            )
+            input_dim = output_dim * self.num_heads
+        
+        return gnn_layers
+    
+    def _get_gnn_output_dim(self) -> int:
+        return self.hidden_dim * self.num_heads
+    
+    def _get_layer_input_dim(self, layer_idx: int) -> int:
+        return self.hidden_dim * self.num_heads
+    
+    @property
+    def use_edge_weights(self) -> bool:
+        return True
+
+
+class GCNEncoder(BaseEncoder):
+    def __init__(
+        self,
+        hidden_dim: int,
+        node_size_of_dicts: list[int],
+        edge_size_of_dicts: list[int],
+        emb_size: int = 4,
+        global_pool: DictConfig = DEFAULT_GLOBAL_POOL,
+        num_layers: int = 3,
+        out_features: int = 32,
+        dropout_rate: float = 0.3,
+    ):
+        self.hidden_dim = hidden_dim
+        self.dropout_rate = dropout_rate
+        
+        super().__init__(
+            node_size_of_dicts=node_size_of_dicts,
+            edge_size_of_dicts=edge_size_of_dicts,
+            emb_size=emb_size,
+            global_pool=global_pool,
+            num_layers=num_layers,
+            out_features=out_features,
+        )
+
+    def _get_gnn_layers(self) -> ModuleList:
+        gnn_layers = ModuleList()
+        input_dim = self.emb_size * self.node_dim
+        
+        for i in range(self.num_layers):
+            output_dim = self.hidden_dim
+            gnn_layers.append(
+                GCNConv(
+                    input_dim,
+                    output_dim,
+                    improved=True,
+                )
+            )
+            input_dim = output_dim
+        
+        return gnn_layers
+    
+    def _get_gnn_output_dim(self) -> int:
+        return self.hidden_dim
+    
+    def _get_layer_input_dim(self, layer_idx: int) -> int:
+        return self.hidden_dim
+    
+    @property
+    def use_edge_weights(self) -> bool:
+        return False
+
+
+class GINEncoder(BaseEncoder):
+    def __init__(
+        self,
+        hidden_dim: int,
+        node_size_of_dicts: list[int],
+        edge_size_of_dicts: list[int],
+        emb_size: int = 4,
+        global_pool: DictConfig = DEFAULT_GLOBAL_POOL,
+        num_layers: int = 3,
+        out_features: int = 32,
+        dropout_rate: float = 0.3,
+    ):
+        self.hidden_dim = hidden_dim
+        self.dropout_rate = dropout_rate
+        
+        super().__init__(
+            node_size_of_dicts=node_size_of_dicts,
+            edge_size_of_dicts=edge_size_of_dicts,
+            emb_size=emb_size,
+            global_pool=global_pool,
+            num_layers=num_layers,
+            out_features=out_features,
+        )
+
+    def _create_mlp(self, input_dim: int, output_dim: int) -> Sequential:
+        return Sequential(
+            Linear(input_dim, output_dim),
+            PReLU(),
+            Linear(output_dim, output_dim),
+            PReLU()
+        )
+
+    def _get_gnn_layers(self) -> ModuleList:
+        gnn_layers = ModuleList()
+        input_dim = self.emb_size * self.node_dim
+        
+        for i in range(self.num_layers):
+            output_dim = self.hidden_dim
+            
+            mlp = self._create_mlp(input_dim, output_dim)
+            
+            gnn_layers.append(
+                GINConv(
+                    nn=mlp,
+                    train_eps=True,
+                )
+            )
+            input_dim = output_dim
+        
+        return gnn_layers
+    
+    def _get_gnn_output_dim(self) -> int:
+        return self.hidden_dim
+    
+    def _get_layer_input_dim(self, layer_idx: int) -> int:
+        return self.hidden_dim
+    
+    @property
+    def use_edge_weights(self) -> bool:
+        return False
+
+
+class ARMAEncoder(BaseEncoder):
+    def __init__(
+        self,
+        hidden_dim: int,
+        node_size_of_dicts: list[int],
+        edge_size_of_dicts: list[int],
+        emb_size: int = 4,
+        global_pool: DictConfig = DEFAULT_GLOBAL_POOL,
+        num_layers: int = 3,
+        out_features: int = 32,
+        dropout_rate: float = 0.3,
+    ):
+        self.hidden_dim = hidden_dim
+        self.dropout_rate = dropout_rate
+        
+        super().__init__(
+            node_size_of_dicts=node_size_of_dicts,
+            edge_size_of_dicts=edge_size_of_dicts,
+            emb_size=emb_size,
+            global_pool=global_pool,
+            num_layers=num_layers,
+            out_features=out_features,
+        )
+
+    def _get_gnn_layers(self) -> ModuleList:
+        gnn_layers = ModuleList()
+        input_dim = self.emb_size * self.node_dim
+        
+        for i in range(self.num_layers):
+            output_dim = self.hidden_dim
+            gnn_layers.append(
+                ARMAConv(
+                    input_dim,
+                    output_dim,
+                )
+            )
+            input_dim = output_dim
+        
+        return gnn_layers
+    
+    def _get_gnn_output_dim(self) -> int:
+        return self.hidden_dim
+    
+    def _get_layer_input_dim(self, layer_idx: int) -> int:
+        return self.hidden_dim
+    
+    @property
+    def use_edge_weights(self) -> bool:
+        return False  # ARMAConv doesn't use edge attributes
+
+
+class EGConvEncoder(BaseEncoder):
+    def __init__(
+        self,
+        hidden_dim: int,
+        node_size_of_dicts: list[int],
+        edge_size_of_dicts: list[int],
+        emb_size: int = 4,
+        global_pool: DictConfig = DEFAULT_GLOBAL_POOL,
+        num_layers: int = 3,
+        out_features: int = 32,
+        dropout_rate: float = 0.3,
+        aggregators: list[str] | None = None,
+    ):
+        self.hidden_dim = hidden_dim
+        self.dropout_rate = dropout_rate
+        self.aggregators = aggregators if aggregators is not None else ["mean", "symnorm", "max", "min"]
+        
+        super().__init__(
+            node_size_of_dicts=node_size_of_dicts,
+            edge_size_of_dicts=edge_size_of_dicts,
+            emb_size=emb_size,
+            global_pool=global_pool,
+            num_layers=num_layers,
+            out_features=out_features,
+        )
+
+    def _get_gnn_layers(self) -> ModuleList:
+        gnn_layers = ModuleList()
+        input_dim = self.emb_size * self.node_dim
+        
+        for i in range(self.num_layers):
+            output_dim = self.hidden_dim
+            gnn_layers.append(
+                EGConv(
+                    input_dim,
+                    output_dim,
+                    aggregators=self.aggregators,
+                )
+            )
+            input_dim = output_dim
+        
+        return gnn_layers
+    
+    def _get_gnn_output_dim(self) -> int:
+        return self.hidden_dim 
+    
+    def _get_layer_input_dim(self, layer_idx: int) -> int:
+        return self.hidden_dim 
+    
+    @property
+    def use_edge_weights(self) -> bool:
+        return False
+
+
+class NNConvEncoder(BaseEncoder):
+    """
+    A configurable Neural Network Convolution (NNConv) model with a variable number of layers.
+    Uses NNConv with a simple two-layer MLP similar to GINEncoder.
+    """
+
+    def __init__(
+        self,
+        hidden_dim: int,
+        node_size_of_dicts: list[int],
+        edge_size_of_dicts: list[int],
+        emb_size: int = 4,
+        global_pool: DictConfig = DEFAULT_GLOBAL_POOL,
+        num_layers: int = 3,
+        out_features: int = 32,
+        dropout_rate: float = 0.3,
+    ):
+        self.hidden_dim = hidden_dim
+        self.dropout_rate = dropout_rate
+        
+        super().__init__(
+            node_size_of_dicts=node_size_of_dicts,
+            edge_size_of_dicts=edge_size_of_dicts,
+            emb_size=emb_size,
+            global_pool=global_pool,
+            num_layers=num_layers,
+            out_features=out_features,
+        )
+
+    def _create_mlp(self, input_dim: int, output_dim: int, edge_dim: int) -> Sequential:
+        hidden_dim = max(input_dim, output_dim) 
+        return Sequential(
+            Linear(edge_dim, hidden_dim),
+            PReLU(),
+            Linear(hidden_dim, input_dim * output_dim),
+            PReLU()
+        )
+
+    def _get_gnn_layers(self) -> ModuleList:
+        gnn_layers = ModuleList()
+        input_dim = self.emb_size * self.node_dim
+        edge_dim = self.emb_size * self.edge_dim
+        
+        for i in range(self.num_layers):
+            output_dim = self.hidden_dim
+            
+            mlp = self._create_mlp(input_dim, output_dim, edge_dim)
+            
+            gnn_layers.append(
+                NNConv(
+                    in_channels=input_dim,
+                    out_channels=output_dim,
+                    nn=mlp,
+                )
+            )
+            input_dim = output_dim
+        
+        return gnn_layers
+    
+    def _get_gnn_output_dim(self) -> int:
+        return self.hidden_dim
+    
+    def _get_layer_input_dim(self, layer_idx: int) -> int:
+        return self.hidden_dim
+    
+    @property
+    def use_edge_weights(self) -> bool:
+        return True

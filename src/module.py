@@ -27,28 +27,31 @@ class GraphPredictor(L.LightningModule):
         k_params = sum(p.numel() for p in self.model.parameters()) / 1000
         config.trainer.model_k_params = math.ceil(k_params)
         self.save_hyperparameters(config)
-        
-    def step(self, batch) -> tuple[torch.Tensor, torch.Tensor]:
+
+    def step(self, batch) -> tuple[tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
         x = self(batch)
-        loss = self.loss_fn(x, batch.y.squeeze())
+        loss = self.loss_fn(x[0], batch.y.squeeze())
         return x, loss
 
-    def forward(self, batch) -> torch.Tensor:
+    def forward(self, batch) -> tuple[torch.Tensor, torch.Tensor]:
         x = self.model(batch)
-        return x[0]
+        return x
 
     def training_step(self, batch) -> torch.Tensor:
         x, loss = self.step(batch)
-        output = self.train_metrics(x, batch.y.squeeze())
+        output = self.train_metrics(x[0], batch.y.squeeze())
         self.log_dict(output, on_step=True, on_epoch=True, batch_size=self.batch_size)
         self.log(
             "train_loss", loss, on_step=True, on_epoch=True, batch_size=self.batch_size
         )
+        gw_avg = x[1].mean(dim=0)
+        for i, g in enumerate(gw_avg):
+            self.log(f"train_gate_{i}", g.mean(), on_step=False, on_epoch=True, batch_size=self.batch_size)
         return loss
 
     def validation_step(self, batch) -> torch.Tensor:
         x, loss = self.step(batch)
-        output = self.valid_metrics(x, batch.y.squeeze())
+        output = self.valid_metrics(x[0], batch.y.squeeze())
         self.log_dict(output, on_step=False, on_epoch=True, batch_size=self.batch_size)
         self.log("val_loss", loss, batch_size=self.batch_size)
         return loss

@@ -5,65 +5,40 @@ from config_utils import load_config
 from module import GraphPredictor
 
 def objective(trial: optuna.trial.Trial) -> float:
-    
-    # Hyperparameter search space
-    lr = trial.suggest_float("trainer.optimizer.lr", 1e-5, 0.01, log=True)
-    weight_decay = trial.suggest_float(
-        "trainer.optimizer.weight_decay", 1e-5, 0.01, log=True
-    )
-    # loss_target = trial.suggest_categorical(
-    #     "trainer.loss._target_",
-    #     [
-    #         "torch.nn.MSELoss",
-    #         "torch.nn.L1Loss",
-    #         "torch.nn.SmoothL1Loss",
-    #         "torch.nn.HuberLoss",
-    #     ],
-    # )
-    # hidden_dim = trial.suggest_categorical("model.hidden_dim", [8, 16, 32, 64, 128])
-    # emb_size = trial.suggest_categorical("model.emb_size", [4, 8, 16, 32])
-    # num_layers = trial.suggest_categorical("model.num_layers", [1, 2, 3, 4, 6, 8, 12])
-    # projector_num_layers = trial.suggest_categorical(
-    #     "model.projector.num_layers", [2, 3, 4, 6, 8]
-    # )
-    # num_heads = trial.suggest_categorical("model.num_heads", [1, 2])
-    dropout_rate = trial.suggest_float("model.dropout_rate", 0.3, 0.5, step=0.05)
-    # use_global_features = trial.suggest_categorical(
-    #     "model.use_global_features", [True, False]
-    # )
 
+    # Hyperparameter search space
+    lr = trial.suggest_float("trainer.optimizer.lr", 1e-4, 0.005, log=True)
+    weight_decay = trial.suggest_float(
+        "trainer.optimizer.weight_decay", 1e-4, 0.005, log=True
+    )
     batch_size = trial.suggest_float(
-        "data.datamodule.batch_size", 16, 64, step=4
+        "data.datamodule.batch_size", 16, 36, step=4
     )
 
     # Convert to Hydra-style overrides
     overrides = [
         f"trainer.optimizer.lr={lr}",
         f"trainer.optimizer.weight_decay={weight_decay}",
-        # f"trainer.loss._target_={loss_target}",
-        # f"model.hidden_dim={hidden_dim}",
-        # f"model.emb_size={emb_size}",
-        # f"model.num_layers={num_layers}",
-        # f"model.num_heads={num_heads}",
-        f"model.dropout_rate={dropout_rate}",
-        # f"model.use_global_features={use_global_features}",
         f"data.datamodule.batch_size={int(batch_size)}",
-        # f"model.projector.num_layers={projector_num_layers}",
+        "run_name=Hptuning",
     ]
     
-    config = load_config(overrides=overrides)
-    dataset = instantiate(config.data.dataset)
-    datamodule = instantiate(config.data.datamodule, dataset=dataset)
-    datamodule.setup()
-    module = GraphPredictor(config)
-    callbacks = list(instantiate(config.callbacks).values())
-    trainer = instantiate(config.trainer.trainer, callbacks=callbacks, enable_checkpointing=False)
-    trainer.fit(module, datamodule.train_dataloader(), datamodule.val_dataloader())
-    
-    return trainer.callback_metrics["val_MeanAbsoluteError"].item()
+    config = load_config(experiment_name="heat_base", overrides=overrides)
+    results = []
+    for seed in range(42, 45):
+        print(f"Running trial {trial.number} with seed {seed}")
+        dataset = instantiate(config.data.dataset)
+        datamodule = instantiate(config.data.datamodule, dataset=dataset, seed = int(seed))
+        datamodule.setup()
+        module = GraphPredictor(config)
+        callbacks = list(instantiate(config.callbacks).values())
+        trainer = instantiate(config.trainer.trainer, callbacks=callbacks, enable_checkpointing=False)
+        trainer.fit(module, datamodule.train_dataloader(), datamodule.val_dataloader())
+        results.append(trainer.callback_metrics["val_MeanAbsoluteError"].item())
+    return sum(results) / len(results)
 
 if __name__ == "__main__":
-    study = optuna.create_study(study_name="GNNhptuning", direction="minimize", storage="sqlite:///optuna_study.db")
-    study.optimize(objective, n_trials=50)
+    study = optuna.create_study(study_name="Hptuning", direction="minimize", storage="sqlite:///optuna_study.db")
+    study.optimize(objective, n_trials=100)
     print(study.best_params)
     print(study.best_value)

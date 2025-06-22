@@ -84,56 +84,91 @@ def add_global_features(global_features: List[str], graph: Data) -> Data:
             g.append(float(rdMolDescriptors.CalcKappa1(mol)))
         except:
             g.append(0.0)
+            print("CalcKappa1 failed for", smiles)
     if "CalcKappa2" in global_features:
         try:
             g.append(float(rdMolDescriptors.CalcKappa2(mol)))
         except:
             g.append(0.0)
+            print("CalcKappa2 failed for", smiles)
     if "CalcKappa3" in global_features:
         try:
             g.append(float(rdMolDescriptors.CalcKappa3(mol)))
         except:
             g.append(0.0)
+            print("CalcKappa3 failed for", smiles)
     if "CalcLabuteASA" in global_features:
         try:
             g.append(float(rdMolDescriptors.CalcLabuteASA(mol)))
         except:
             g.append(0.0)
+            print("CalcLabuteASA failed for", smiles)
     if "Chi0" in global_features:
         try:
             g.append(float(GraphDescriptors.Chi0(mol)))
         except:
             g.append(0.0)
+            print("Chi0 failed for", smiles)
     if "Chi1" in global_features:
         try:
             g.append(float(GraphDescriptors.Chi1(mol)))
         except:
             g.append(0.0)
+            print("Chi1 failed for", smiles)
     if "HeavyAtomMolWt" in global_features:
         try:
             g.append(float(Descriptors.HeavyAtomMolWt(mol)))
         except:
             g.append(0.0)
+            print("HeavyAtomMolWt failed for", smiles)
     if "ExactMolWt" in global_features:
         try:
             g.append(float(Descriptors.ExactMolWt(mol)))
         except:
             g.append(0.0)
+            print("ExactMolWt failed for", smiles)
     if "MolLogP" in global_features:
         try:
             g.append(float(Descriptors.MolLogP(mol)))
         except:
             g.append(0.0)
+            print("MolLogP failed for", smiles)
     if "CalcFractionCSP3" in global_features:
         try:
             g.append(float(rdMolDescriptors.CalcFractionCSP3(mol)))
         except:
             g.append(0.0)
+            print("CalcFractionCSP3 failed for", smiles)
     if "CalcHallKierAlpha" in global_features:
         try:
             g.append(float(rdMolDescriptors.CalcHallKierAlpha(mol)))
         except:
             g.append(0.0)
+            print("CalcHallKierAlpha failed for", smiles)
+    if "PEOE_VSA9" in global_features:
+        try:
+            g.append(float(Chem.MolSurf.PEOE_VSA9(mol)))
+        except:
+            g.append(0.0)
+            print("PEOE_VSA9 failed for", smiles)
+    if "SlogP_VSA1" in global_features:
+        try:
+            g.append(float(Chem.MolSurf.SlogP_VSA1(mol)))
+        except:
+            g.append(0.0)
+            print("SlogP_VSA1 failed for", smiles)
+    if "EState_VSA2" in global_features:
+        try:
+            g.append(float(Chem.EState.EState_VSA.EState_VSA2(mol)))
+        except:
+            g.append(0.0)
+            print("EState_VSA2 failed for", smiles)
+    if "MaxAbsEStateIndex" in global_features:
+        try:
+            g.append(float(Chem.EState.EState.MaxAbsEStateIndex(mol)))
+        except:
+            g.append(0.0)
+            print("MaxAbsEStateIndex failed for", smiles)
     graph.g = torch.tensor(g, dtype=torch.float).view(1, -1)
     return graph
 

@@ -7,15 +7,14 @@ from module import GraphPredictor
 def objective(trial: optuna.trial.Trial) -> float:
 
     # Hyperparameter search space
-    lr = trial.suggest_float("trainer.optimizer.lr", 1e-4, 0.005, log=True)
+    lr = trial.suggest_float("trainer.optimizer.lr", 1e-4, 0.01, log=True)
     weight_decay = trial.suggest_float(
-        "trainer.optimizer.weight_decay", 1e-4, 0.005, log=True
+        "trainer.optimizer.weight_decay", 1e-4, 0.01, log=True
     )
     batch_size = trial.suggest_float(
-        "data.datamodule.batch_size", 16, 36, step=4
+        "data.datamodule.batch_size", 16, 64, step=4
     )
 
-    # Convert to Hydra-style overrides
     overrides = [
         f"trainer.optimizer.lr={lr}",
         f"trainer.optimizer.weight_decay={weight_decay}",
@@ -23,7 +22,7 @@ def objective(trial: optuna.trial.Trial) -> float:
         "run_name=Hptuning",
     ]
     
-    config = load_config(experiment_name="heat_base", overrides=overrides)
+    config = load_config(experiment_name="mp_base", overrides=overrides)
     results = []
     for seed in range(42, 45):
         print(f"Running trial {trial.number} with seed {seed}")
@@ -38,7 +37,7 @@ def objective(trial: optuna.trial.Trial) -> float:
     return sum(results) / len(results)
 
 if __name__ == "__main__":
-    study = optuna.create_study(study_name="Hptuning", direction="minimize", storage="sqlite:///optuna_study.db")
-    study.optimize(objective, n_trials=100)
+    study = optuna.create_study(study_name="Hptuning", load_if_exists=True, direction="minimize", storage="sqlite:///optuna_study.db")
+    study.optimize(objective, n_trials=50)
     print(study.best_params)
     print(study.best_value)

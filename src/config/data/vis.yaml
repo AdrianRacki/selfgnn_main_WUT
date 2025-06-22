@@ -34,9 +34,12 @@ dataset:
     - HeavyAtomMolWt 
     - CalcFractionCSP3 
     - CalcHallKierAlpha
-
+    - PEOE_VSA9
+    - SlogP_VSA1
+    - EState_VSA2
+    - MaxAbsEStateIndex
 datamodule:
   _target_: datamodule.GNNDataModule
-  batch_size: 24
+  batch_size: 52
   data_split: 0.8
   seed: 42

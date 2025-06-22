@@ -33,6 +33,18 @@ class GraphModelWrapper(torch.nn.Module):
         output = self.projector_layer(weighted_output).squeeze()
         return output, gate_weights
 
+class GlobalFeaturesModule(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.mlp = Projector(
+            in_features=15,
+            out_features=32)
+
+    def forward(self, graph: Data) -> torch.Tensor:
+        x = graph.g
+        x = self.mlp(x)
+        return x
+    
 class BaseEncoder(ABC, torch.nn.Module):
     def __init__( 
         self,

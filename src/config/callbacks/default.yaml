@@ -12,8 +12,11 @@ lr_monitor:
   logging_interval: step
   log_momentum: False
   log_weight_decay: False
-# model_summary:
-#   _target_: lightning.pytorch.callbacks.ModelSummary
+best_metrics:
+  _target_: utils.best_metrics_callback.BestMetricsCallback
+  run_name: ${run_name}
+model_summary:
+  _target_: lightning.pytorch.callbacks.ModelSummary
 model_checkpoint:
   _target_: lightning.pytorch.callbacks.ModelCheckpoint
   monitor: val_R2Score

@@ -19,8 +19,8 @@ model_summary:
   _target_: lightning.pytorch.callbacks.ModelSummary
 model_checkpoint:
   _target_: lightning.pytorch.callbacks.ModelCheckpoint
-  monitor: val_R2Score
-  mode: max
+  monitor: val_MeanAbsoluteError
+  mode: min
   save_top_k: 1
   dirpath: ./checkpoints
   filename: ${run_name}_best

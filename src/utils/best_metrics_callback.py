@@ -17,17 +17,20 @@ class BestMetricsCallback(L.Callback):
         super().__init__()
         self.run_name = run_name
         self.csv_path = csv_path
-        self.best_val_r2score = float('-inf')
+        self.best_score = 1000
+        self.current_epoch = 0
         self.best_metrics = {}
         
     def on_validation_epoch_end(self, trainer, pl_module) -> None:
         current_metrics = trainer.callback_metrics
         
-        if 'val_R2Score' in current_metrics:
-            current_val_r2score = current_metrics['val_R2Score'].item()
+        if 'val_MeanAbsoluteError' in current_metrics:
+            current_score = current_metrics['val_MeanAbsoluteError'].item()
+            current_epoch = trainer.current_epoch
             
-            if current_val_r2score > self.best_val_r2score:
-                self.best_val_r2score = current_val_r2score
+            if current_score < self.best_score:
+                self.best_score = current_score
+                self.current_epoch = current_epoch
                 self.best_metrics = {k: v.item() if hasattr(v, 'item') else v 
                                    for k, v in current_metrics.items()}
                 
@@ -37,6 +40,7 @@ class BestMetricsCallback(L.Callback):
             
         row_data = {
             'run_name': self.run_name,
+            'best_epoch': self.current_epoch,
             **self.best_metrics
         }
         

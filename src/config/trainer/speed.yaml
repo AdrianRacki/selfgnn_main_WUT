@@ -15,8 +15,7 @@ model_k_params: 1 # number of parameters in the model in thousands logged in mlf
 
 trainer:
   _target_: lightning.pytorch.Trainer
-  min_epochs: 30
-  max_epochs: 110
+  min_epochs: 125
   accelerator: cpu
   log_every_n_steps: 4
   logger:

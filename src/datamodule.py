@@ -107,3 +107,13 @@ class GNNDataModule(pl.LightningDataModule):
             shuffle=False,
             drop_last=True,
         )
+    
+    def predict_dataloader(self):
+        """Return DataLoader for prediction data. Return full dataset.
+        """
+        return DataLoader(
+            self.dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            drop_last=False,
+        )

@@ -6,7 +6,7 @@ from datamodule import GNNDataModule
 import argparse
 import tqdm
 
-def main(experiment_name: str, overrides: list[str] | None = None) -> tuple[GraphPredictor, GNNDataModule]:
+def main(experiment_name: str, overrides: list[str] | None = None, predict: bool = True) -> tuple[GraphPredictor, GNNDataModule]:
     print("Running main")
     print("Loading config")
     config = load_config(experiment_name = experiment_name, overrides=overrides)
@@ -21,11 +21,14 @@ def main(experiment_name: str, overrides: list[str] | None = None) -> tuple[Grap
     trainer = instantiate(config.trainer.trainer, callbacks=callbacks)
     print("Training model")
     trainer.fit(module, datamodule.train_dataloader(), datamodule.val_dataloader())
+    if predict:
+        print("Making predictions")
+        trainer.predict(module, datamodule.predict_dataloader())
     return module, datamodule
 
-def main_nfolds(experiment_name: str, n_folds: int, overrides: list[str] | None = None):
+def main_nfolds(experiment_name: str, n_folds: int, overrides: list[str] | None = None, run_name: str | None = None):
     for fold in tqdm.tqdm(range(n_folds), desc="Running k-fold"):
-        fold_overrides = [f"run_name={experiment_name}_fold_{fold}"]
+        fold_overrides = [f"run_name={experiment_name}_{run_name}_fold"]
         if overrides:
             fold_overrides.extend(overrides)
         config = load_config(experiment_name=experiment_name, overrides=fold_overrides)
@@ -56,16 +59,24 @@ def parse_args():
         default=0,
         help="Number of folds for cross-validation. 0 means no cross-validation",
     )
-    args = parser.parse_args()
-    return args
+    parser.add_argument(
+        "--predict",
+        type=bool,
+        default=False,
+        help="Whether to run predictions",
+    )
+    args, unknown = parser.parse_known_args()
+    return args, unknown
 
 if __name__ == "__main__":
-    args = parse_args()
+    args, unknown = parse_args()
     if args.run_nfolds > 0:
         main_nfolds(
             experiment_name=args.experiment,
             n_folds=args.run_nfolds,
+            run_name=args.run_name,
+            overrides=unknown,
         )
     else:
-        overrides = [f"run_name={args.run_name}"]
-        main(experiment_name=args.experiment, overrides=overrides)
+        overrides = [f"run_name={args.run_name}"] + unknown
+        main(experiment_name=args.experiment, overrides=overrides, predict=args.predict)

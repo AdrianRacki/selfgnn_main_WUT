@@ -4,8 +4,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 from torchmetrics import MetricCollection
 import math
-
-# TODO: add prediction step
+import pandas as pd
 class GraphPredictor(L.LightningModule):
     def __init__(self, config: DictConfig) -> None:
         super().__init__()
@@ -27,6 +26,11 @@ class GraphPredictor(L.LightningModule):
         k_params = sum(p.numel() for p in self.model.parameters()) / 1000
         config.trainer.model_k_params = math.ceil(k_params)
         self.save_hyperparameters(config)
+        
+        # Initialize lists for predictions and SMILES
+        self.preds = []
+        self.smiles = []
+        self.y_true = []
 
     def step(self, batch) -> tuple[tuple[torch.Tensor, torch.Tensor], torch.Tensor]:
         x = self(batch)
@@ -56,6 +60,23 @@ class GraphPredictor(L.LightningModule):
         self.log("val_loss", loss, batch_size=self.batch_size)
         return loss
     
+    def predict_step(self, batch) -> tuple[torch.Tensor, torch.Tensor]:
+        x = self(batch)
+        return x[0]
+
+    def on_predict_batch_end(self, outputs, batch, batch_idx): # type: ignore
+        self.preds.extend(outputs)
+        self.y_true.extend(batch.y.squeeze().tolist())
+        self.smiles.extend(batch.smiles)
+        
+    def on_predict_end(self) -> None:
+        df = pd.DataFrame({
+            "smiles": self.smiles,
+            "value": [p.item() for p in self.preds],
+            "y_true": self.y_true,
+        })
+        df.to_csv(f"data/predictions/{self.config.run_name}_predictions.csv", index=False)
+         
     def get_mol_embedding(self, batch) -> torch.Tensor:
         """
         Get the molecular embedding from the model.

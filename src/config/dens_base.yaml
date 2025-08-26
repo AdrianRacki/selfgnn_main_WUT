@@ -2,7 +2,7 @@ defaults:
   - _self_
   - callbacks: default
   - data: dens
-  - model: MoE
+  - model: MoE_with_global
   - trainer: dens
   - metrics: regression
   

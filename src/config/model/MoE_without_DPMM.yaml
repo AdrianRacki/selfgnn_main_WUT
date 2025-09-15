@@ -21,8 +21,3 @@ experts:
     hidden_dim: 16
     node_size_of_dicts: ${data.dataset.node_features.sizes}
     edge_size_of_dicts: ${data.dataset.edge_features.sizes}
-  - _target_: model.DMPNNEncoder
-    hidden_dim: 16
-    node_size_of_dicts: ${data.dataset.node_features.sizes}
-    edge_size_of_dicts: ${data.dataset.edge_features.sizes}
-  - _target_: model.GlobalFeaturesModule

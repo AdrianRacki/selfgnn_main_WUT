@@ -5,7 +5,7 @@ from torch_geometric.data import InMemoryDataset
 from tqdm import tqdm
 
 from utils import from_smiles, add_global_features
-
+import torch
 
 class LabeledGraphDataset(InMemoryDataset):
     def __init__(
@@ -51,6 +51,8 @@ class LabeledGraphDataset(InMemoryDataset):
                 edge_features=self.edge_features,
             )
             data.y = mp
+            E = data.edge_index.shape[1]
+            data.rev_edge_index = torch.arange(E).view(-1, 2)[:, [1, 0]].reshape(-1)
             data = add_global_features(self.global_features, data)
             data_list.append(data)
 

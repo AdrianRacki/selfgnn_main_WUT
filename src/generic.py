@@ -75,13 +75,7 @@ class GatingModule(torch.nn.Module):
         self.input_dim = input_dim
         
         self.gate_network = torch.nn.Sequential(
-            torch.nn.Linear(input_dim, hidden_dim),
-            torch.nn.PReLU(),
-            torch.nn.Dropout(dropout_rate),
-            torch.nn.Linear(hidden_dim, hidden_dim // 2),
-            torch.nn.PReLU(),
-            torch.nn.Dropout(dropout_rate),
-            torch.nn.Linear(hidden_dim // 2, num_experts),
+            torch.nn.Linear(input_dim, num_experts, bias=False),
             torch.nn.Softmax(dim=-1)
         )
         

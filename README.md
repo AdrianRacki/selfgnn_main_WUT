@@ -1,4 +1,4 @@
-# SelfGNN Main
+# Wide and Cross GNNs: Cross Interactions and Parallel Scaling for Robust Chemical Property Prediction
 
 A Graph Neural Network (GNN) framework for molecular property prediction using PyTorch Lightning and Hydra for configuration management.
 

@@ -1,0 +1,11 @@
+defaults:
+  - _self_
+  - callbacks: classification
+  - data: tox
+  - model: MoE
+  - trainer: tox
+  - metrics: classification
+  
+run_name: tox_default
+classification: True
+

@@ -7,4 +7,5 @@ defaults:
   - metrics: regression
   
 run_name: mp_default
+classification: false
 

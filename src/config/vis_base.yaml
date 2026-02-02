@@ -7,4 +7,5 @@ defaults:
   - metrics: regression
   
 run_name: vis_default
+classification: false
 

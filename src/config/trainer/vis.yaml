@@ -1,7 +1,7 @@
 optimizer:
   _target_: torch.optim.AdamW
-  lr: 0.0016230347314157405
-  weight_decay: 0.00015293409520543349
+  lr: 0.0015
+  weight_decay: 0.00015
 scheduler:
   _target_: torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
   T_0: 5
@@ -15,12 +15,13 @@ model_k_params: 1 # number of parameters in the model in thousands logged in mlf
 
 trainer:
   _target_: lightning.pytorch.Trainer
-  min_epochs: 200
+  min_epochs: 50
+  max_epochs: 200
   accelerator: cpu
   log_every_n_steps: 10
   logger:
     _target_: lightning.pytorch.loggers.mlflow.MLFlowLogger
-    experiment_name: Vis_results
+    experiment_name: Final_calculations
     run_name: ${run_name}
     tracking_uri: http://127.0.0.1:5000
     save_dir: ./mlruns

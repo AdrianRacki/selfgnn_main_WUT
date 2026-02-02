@@ -1,0 +1,22 @@
+early_stopper:
+  _target_: lightning.pytorch.callbacks.EarlyStopping
+  monitor: val_BinaryAUROC
+  min_delta: 0.005
+  patience: 35
+  verbose: False
+  mode: max
+  strict: True
+  check_finite: True
+lr_monitor:
+  _target_: lightning.pytorch.callbacks.LearningRateMonitor
+  logging_interval: step
+  log_momentum: False
+  log_weight_decay: False
+best_metrics:
+  _target_: utils.best_metrics_callback.BestMetricsCallback
+  run_name: ${run_name}
+  classification: True
+model_summary:
+  _target_: lightning.pytorch.callbacks.ModelSummary
+
+

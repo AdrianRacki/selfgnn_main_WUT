@@ -3,12 +3,12 @@ from abc import ABC, abstractmethod
 import torch
 from hydra.utils import instantiate
 from omegaconf import DictConfig
-from torch.nn import ModuleList, PReLU, Linear, Sequential, Dropout
+from torch.nn import ModuleList, PReLU, Linear, Sequential, Dropout, Sigmoid
 from torch_geometric.data import Data
 from torch_geometric.nn import TransformerConv, GCNConv, GINConv, ARMAConv, EGConv, NNConv
 from torch_geometric.nn.norm import GraphNorm
 
-from generic import EmbeddingLayer, GatingModule, Projector
+from generic import EmbeddingLayer, GatingModule, Projector, DCNv2
 
 DEFAULT_GLOBAL_POOL = DictConfig({
     "_target_": "torch_geometric.nn.aggr.SoftmaxAggregation",
@@ -16,29 +16,45 @@ DEFAULT_GLOBAL_POOL = DictConfig({
     "learn": True})
 
 class GraphModelWrapper(torch.nn.Module):
-    def __init__(self, experts: list[DictConfig]) -> None:
+    def __init__(self, experts: list[DictConfig], classification: bool = False, gating: bool = True) -> None:
         super().__init__()
         
         self.experts = ModuleList([instantiate(expert) for expert in experts])
-        self.gating_module = GatingModule(
-            num_experts=len(self.experts),
-            expert_output_dim=self.experts[0].out_features,
-        )
-        self.projector_layer = Projector(in_features=self.experts[0].out_features)
+        self.gating = gating
+        
+        if self.gating:
+            self.gating_module = GatingModule(
+                num_experts=len(self.experts),
+                expert_output_dim=self.experts[0].out_features,
+            )
+            self.projector_layer = Projector(in_features=self.experts[0].out_features)
+        else:
+            self.projector_layer = Projector(in_features=self.experts[0].out_features * len(self.experts))
+        
+        self.last_activation = Sigmoid() if classification else torch.nn.Identity()
         
     def forward(self, graph: Data) -> tuple[torch.Tensor, torch.Tensor]:
         expert_outputs = [expert(graph) for expert in self.experts]
-        expert_outputs = torch.cat(expert_outputs, dim=1)
-        weighted_output, gate_weights = self.gating_module(expert_outputs)
-        output = self.projector_layer(weighted_output).squeeze()
+        expert_outputs_cat = torch.cat(expert_outputs, dim=1)
+        
+        if self.gating:
+            weighted_output, gate_weights = self.gating_module(expert_outputs_cat)
+            output = self.projector_layer(weighted_output).squeeze()
+        else:
+            output = self.projector_layer(expert_outputs_cat).squeeze()
+            # Mock gate weights as zeros when gating is not used
+            gate_weights = torch.zeros(expert_outputs_cat.size(0), len(self.experts), device=expert_outputs_cat.device)
+        
+        output = self.last_activation(output)
         return output, gate_weights
 
 class GlobalFeaturesModule(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, out_features: int = 32) -> None:
         super().__init__()
         self.mlp = Projector(
             in_features=15,
-            out_features=32)
+            out_features=out_features)
+        self.out_features = out_features
 
     def forward(self, graph: Data) -> torch.Tensor:
         x = graph.g
@@ -52,7 +68,7 @@ class BaseEncoder(ABC, torch.nn.Module):
         edge_size_of_dicts: list[int],
         global_pool: DictConfig = DEFAULT_GLOBAL_POOL,
         emb_size: int = 4,
-        num_layers: int = 3,
+        num_layers: int = 2,
         out_features: int = 32,
     ):
         super().__init__()
@@ -255,10 +271,13 @@ class GINEncoder(BaseEncoder):
         num_layers: int = 3,
         out_features: int = 32,
         dropout_rate: float = 0.3,
+        internal_model: str = "MLP", # "MLP" or "CrossNetV2"
+        cross_layers: int = 4,
     ):
         self.hidden_dim = hidden_dim
         self.dropout_rate = dropout_rate
-        
+        self.internal_model = internal_model
+        self.cross_layers = cross_layers
         super().__init__(
             node_size_of_dicts=node_size_of_dicts,
             edge_size_of_dicts=edge_size_of_dicts,
@@ -276,15 +295,27 @@ class GINEncoder(BaseEncoder):
             PReLU()
         )
 
+    def _create_crossnet(self, input_dim: int, output_dim: int) -> DCNv2:
+        return DCNv2(
+            embedding_dim=input_dim,
+            out_dim=output_dim,
+            cross_layers=self.cross_layers,
+            mlp_sizes=[16,16],
+            structure='parallel',
+        )
+    
     def _get_gnn_layers(self) -> ModuleList:
         gnn_layers = ModuleList()
         input_dim = self.emb_size * self.node_dim
-        
         for i in range(self.num_layers):
             output_dim = self.hidden_dim
-            
-            mlp = self._create_mlp(input_dim, output_dim)
-            
+            if self.internal_model == "CrossNetV2":
+                mlp = self._create_crossnet(input_dim, output_dim)
+            elif self.internal_model == "MLP":
+                mlp = self._create_mlp(input_dim, output_dim)
+            else:
+                raise ValueError(f"Unknown internal_model: {self.internal_model}")
+
             gnn_layers.append(
                 GINConv(
                     nn=mlp,
@@ -555,7 +586,6 @@ class DMPNN(torch.nn.Module):
         for _ in range(self.num_layers):
             M = self.message(H_t, x, edge_index, rev_edge_index)
             H_t = self.update(M, H_0)
-
         H_e = self.edge_finalize(H_t, edge_attr)
         return H_e
 
@@ -613,7 +643,6 @@ class DMPNNEncoder(BaseEncoder):
             graph.g,
             graph.rev_edge_index
         )
-
         x = self.node_emb_layer(x)
         edge_attr = self.edge_emb_layer(edge_attr)
 
@@ -621,6 +650,7 @@ class DMPNNEncoder(BaseEncoder):
         edge_batch = batch_index[edge_index[0]] # type: ignore
         x = self.emb_pool(x, edge_batch)
         x = self.projector_layer(x)
+        
         return x
         
     @property

@@ -50,10 +50,10 @@ class LabeledGraphDataset(InMemoryDataset):
                 node_features=self.node_features,
                 edge_features=self.edge_features,
             )
-            data.y = mp
-            E = data.edge_index.shape[1]
-            data.rev_edge_index = torch.arange(E).view(-1, 2)[:, [1, 0]].reshape(-1)
+            data.y = float(mp)
             data = add_global_features(self.global_features, data)
+            if data.x.shape[0] == 0 or data.edge_index.shape[0] == 0:  # type: ignore
+                continue
             data_list.append(data)
 
         if self.pre_filter is not None:

@@ -1,0 +1,11 @@
+defaults:
+  - _self_
+  - callbacks: classification
+  - data: bbbp
+  - model: MoE
+  - trainer: bbbp
+  - metrics: classification
+  
+run_name: bbbp_default
+classification: True
+

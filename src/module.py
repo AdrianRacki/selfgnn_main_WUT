@@ -9,8 +9,9 @@ class GraphPredictor(L.LightningModule):
     def __init__(self, config: DictConfig) -> None:
         super().__init__()
         self.config = config
+        self.best_metric = 0.0
         self.batch_size = config.data.datamodule.batch_size
-        self.model: torch.nn.Module = instantiate(config.model, _recursive_=False)
+        self.model: torch.nn.Module = instantiate(config.model, _recursive_=False, classification=config.classification)
         self.optimizer = instantiate(
             config.trainer.optimizer, params=self.model.parameters()
         )

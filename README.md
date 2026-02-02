@@ -7,7 +7,7 @@ A Graph Neural Network (GNN) framework for molecular property prediction using P
 This repository implements a GNN-based model for predicting various molecular properties from chemical structures. It supports both classification and regression tasks on multiple molecular datasets including:
 
 - **Classification**: BACE, BBBP, HIV, ClinTox
-- **Regression**: ESOL, FreeSolv, Lipophilicity (LIPO), Density, Heat Capacity, Melting Point (MP), Speed of Sound, Viscosity
+- **Regression**: ESOL, FreeSolv, Lipophilicity (LIPO), Melting Point (MP)
 
 ## Installation
 

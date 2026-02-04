@@ -86,8 +86,6 @@ Base experiment configs available:
 │   ├── module.py            # Lightning module
 │   ├── datamodule.py        # Data handling
 │   └── dataset.py           # Dataset classes
-├── data/                    # Dataset storage
-├── results/                 # Training results
-├── notebooks/               # Analysis notebooks
+├── data/                    # Dataset storage              
 └── mlruns/                  # MLflow experiment tracking
 ```

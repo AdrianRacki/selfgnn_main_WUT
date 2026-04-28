@@ -5,6 +5,7 @@ from omegaconf import DictConfig
 from torchmetrics import MetricCollection
 import math
 import pandas as pd
+
 class GraphPredictor(L.LightningModule):
     def __init__(self, config: DictConfig) -> None:
         super().__init__()

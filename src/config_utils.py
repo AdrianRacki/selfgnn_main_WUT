@@ -7,5 +7,5 @@ def load_config(experiment_name: str, config_path: str = "config", overrides = N
     except ValueError:
         pass
     with hydra.initialize(config_path=config_path, version_base=None):
-        cfg: DictConfig = hydra.compose(f"{experiment_name}.yaml", overrides=overrides)
+        cfg: DictConfig = hydra.compose(f"experiments/{experiment_name}", overrides=overrides)
     return cfg

@@ -1,8 +1,9 @@
 dataset:
   _target_: dataset.LabeledGraphDataset
   root: data
-  raw_filename: raw_mp.csv 
-  processed_filename: processed_mp.pt
+  raw_filename: idac.csv 
+  processed_filename: processed_idac.pt
+  append_temperature_vector: true
   node_features:
     sizes: [120, 10, 20, 10, 10, 10, 3, 3]
     features:
@@ -41,6 +42,6 @@ dataset:
 
 datamodule:
   _target_: datamodule.GNNDataModule
-  batch_size: 68
+  batch_size: 256
   data_split: 0.8
   seed: 42

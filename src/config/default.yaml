@@ -7,4 +7,3 @@ defaults:
   - metrics: regression
   
 run_name: default
-classification: False

@@ -5,7 +5,6 @@ from torch_geometric.data import InMemoryDataset
 from tqdm import tqdm
 
 from utils import from_smiles, add_global_features
-import torch
 
 class LabeledGraphDataset(InMemoryDataset):
     def __init__(
@@ -16,6 +15,7 @@ class LabeledGraphDataset(InMemoryDataset):
         raw_filename: str,
         processed_filename: str,
         global_features,
+        append_temperature_vector: bool = True,
         transform=None,
         pre_transform=None,
         pre_filter=None,
@@ -25,6 +25,7 @@ class LabeledGraphDataset(InMemoryDataset):
         self.global_features = global_features.features
         self.raw_filename = [raw_filename]
         self.processed_filename = [processed_filename]
+        self.append_temperature_vector = append_temperature_vector
         super().__init__(root, transform, pre_transform, pre_filter)
         self.load(self.processed_paths[0])
 
@@ -52,7 +53,10 @@ class LabeledGraphDataset(InMemoryDataset):
             )
             data.y = float(mp)
             data = add_global_features(self.global_features, data)
-            if data.x.shape[0] == 0 or data.edge_index.shape[0] == 0:  # type: ignore
+            if self.append_temperature_vector:
+                data.temperature = row["temperature"]
+
+            if data.x.shape[0] == 0 or data.edge_index.shape[0] == 0:
                 continue
             data_list.append(data)
 

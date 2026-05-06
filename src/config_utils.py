@@ -1,8 +1,9 @@
 import hydra
 from omegaconf import DictConfig, OmegaConf
 
-def load_config(experiment_name: str, config_path: str = "config", overrides = None) -> DictConfig:
-    try :
+
+def load_config(experiment_name: str, config_path: str = "config", overrides=None) -> DictConfig:
+    try:
         OmegaConf.register_new_resolver("len", lambda x: len(x))
     except ValueError:
         pass

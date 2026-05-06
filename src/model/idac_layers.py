@@ -22,7 +22,7 @@ class IDACProjector(torch.nn.Module):
         self.temperature_projector = torch.nn.Linear(1, temperature_size, bias=False)
         in_features = in_features + temperature_size + global_features_size if append_global_features else in_features + temperature_size
         self.input_batchnorm = torch.nn.BatchNorm1d(in_features)
-        sizes = [in_features, 32, 32, out_features]
+        sizes = [in_features, 64, 32, out_features]
 
         for i in range(len(sizes) - 1):
             self.layers.append(torch.nn.Linear(sizes[i], sizes[i + 1]))

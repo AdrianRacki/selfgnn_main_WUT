@@ -1,12 +1,11 @@
 import torch
-from typing import Optional
 
 
 # TODO: Fix this so it works on single graph, not on batch of graphs
 def barlow_twins_loss(
     z_a: torch.Tensor,
     z_b: torch.Tensor,
-    _lambda: Optional[float] = None,
+    _lambda: float | None = None,
 ) -> torch.Tensor:
     """
     Computes the Barlow Twins loss between two sets of embeddings.

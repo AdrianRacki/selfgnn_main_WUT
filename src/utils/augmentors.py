@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from copy import deepcopy
+
 from torch_geometric.data import Data
 from torch_geometric.utils import dropout_adj, mask_feature
-from typing import List
 
 
 # TODO: Fix augmentors to work on single graph, not on whole batch
@@ -28,7 +28,7 @@ class Compose(Augmentor):
         augmentors (list[Augmentor]): List of augmentors to compose.
     """
 
-    def __init__(self, augmentors: List[Augmentor]) -> None:
+    def __init__(self, augmentors: list[Augmentor]) -> None:
         super().__init__()
         self.augmentors = augmentors
 

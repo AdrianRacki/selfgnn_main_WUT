@@ -163,6 +163,7 @@ class GINEncoder(BaseEncoder):
             else:
                 raise ValueError(f"Unknown internal_model: {self.internal_model}")
 
+            mlp.in_channels = input_dim
             gnn_layers.append(
                 GINEConv(
                     nn=mlp,

@@ -7,16 +7,13 @@ from module import GraphPredictor
 EXPERIMENT_NAME = "mp_base"
 DIRECTION = "minimize"
 
+
 def objective(trial: optuna.trial.Trial) -> float:
 
     # Hyperparameter search space
     lr = trial.suggest_float("trainer.optimizer.lr", 1e-5, 0.01, log=True)
-    weight_decay = trial.suggest_float(
-        "trainer.optimizer.weight_decay", 1e-5, 0.01, log=True
-    )
-    batch_size = trial.suggest_float(
-        "data.datamodule.batch_size", 16, 64, step=4
-    )
+    weight_decay = trial.suggest_float("trainer.optimizer.weight_decay", 1e-5, 0.01, log=True)
+    batch_size = trial.suggest_float("data.datamodule.batch_size", 16, 64, step=4)
 
     overrides = [
         f"trainer.optimizer.lr={lr}",
@@ -34,6 +31,7 @@ def objective(trial: optuna.trial.Trial) -> float:
     trainer = instantiate(config.trainer.trainer, callbacks=callbacks, enable_checkpointing=False)
     trainer.fit(module, datamodule.train_dataloader(), datamodule.val_dataloader())
     return module.best_metric
+
 
 if __name__ == "__main__":
     study = optuna.create_study(study_name="Hptuning", load_if_exists=True, direction=DIRECTION, storage="sqlite:///optuna_study.db")

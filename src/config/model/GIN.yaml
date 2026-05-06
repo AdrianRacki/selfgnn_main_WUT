@@ -8,6 +8,3 @@ experts:
     cross_layers: 0
     node_size_of_dicts: ${data.dataset.node_features.sizes}
     edge_size_of_dicts: ${data.dataset.edge_features.sizes}
-
-
-    

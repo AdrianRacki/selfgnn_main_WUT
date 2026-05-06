@@ -10,11 +10,17 @@ embedding_layer:
     bias: false
   emb_size: 6
 encoder_layer:
-  _target_: model.encoder.GATEncoder
+  _target_: model.encoder.GINEncoder
   _partial_: true
   hidden_dim: 32
-  num_heads: 2
   num_layers: 2
+  internal_model: "CrossNetV2"
+  cross_layers: 1
+  # _target_: model.encoder.GATEncoder
+  # _partial_: true
+  # hidden_dim: 32
+  # num_heads: 2
+  # num_layers: 2
 pooling_layer:
   _target_: model.pooling.IDACPooling
   num_mols: 3
@@ -23,4 +29,5 @@ projector_layer:
   _partial_: true
   out_features: 1
   dropout_rate: 0.1
+  append_global_features: true
   global_features_size: 45  # num mols * num global features

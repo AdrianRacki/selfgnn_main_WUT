@@ -1,5 +1,3 @@
-from typing import Optional
-
 import pytorch_lightning as pl
 import torch
 from torch.utils.data import random_split
@@ -30,15 +28,13 @@ class GNNDataModule(pl.LightningDataModule):
         self.data_split = data_split
         self.seed = seed
 
-    def setup(self, stage: Optional[str] = None):
+    def setup(self, stage: str | None = None):
         torch.manual_seed(self.seed)
         train_size = int(len(self.dataset) * self.data_split)
         val_size = len(self.dataset) - train_size
         generator = torch.Generator().manual_seed(self.seed)
-        self.train_dataset, self.val_dataset = random_split(
-            self.dataset, [train_size, val_size], generator
-        )
-        
+        self.train_dataset, self.val_dataset = random_split(self.dataset, [train_size, val_size], generator)
+
     def setup_n_folds(self, n_folds: int = 10, fold: int = 0):
         """Setup n-fold cross-validation.
 
@@ -47,14 +43,14 @@ class GNNDataModule(pl.LightningDataModule):
             fold: Current fold index (0 to n_folds-1) (default: 0)
         """
         torch.manual_seed(self.seed)
-        
+
         if fold < 0 or fold >= n_folds:
-            raise ValueError(f"Fold index must be between 0 and {n_folds-1}, got {fold}")
-            
+            raise ValueError(f"Fold index must be between 0 and {n_folds - 1}, got {fold}")
+
         dataset_size = len(self.dataset)
         fold_size = dataset_size // n_folds
         remainder = dataset_size % n_folds
-        
+
         fold_indices = []
         start_idx = 0
         for i in range(n_folds):
@@ -62,21 +58,20 @@ class GNNDataModule(pl.LightningDataModule):
             end_idx = start_idx + current_fold_size
             fold_indices.append(range(start_idx, end_idx))
             start_idx = end_idx
-        
+
         all_indices = torch.randperm(dataset_size)
         val_indices = [all_indices[i].item() for i in fold_indices[fold]]
-        
+
         train_indices = []
         for i in range(n_folds):
             if i != fold:
                 train_indices.extend([all_indices[j].item() for j in fold_indices[i]])
-        
+
         self.train_dataset = torch.utils.data.Subset(self.dataset, train_indices)
-        self.val_dataset = torch.utils.data.Subset(self.dataset, val_indices) # type: ignore
-        
+        self.val_dataset = torch.utils.data.Subset(self.dataset, val_indices)  # type: ignore
+
         print(f"Created {n_folds}-fold CV split: fold {fold} as validation set")
         print(f"Training samples: {len(self.train_dataset)}, Validation samples: {len(self.val_dataset)}")
-
 
     def train_dataloader(self):
         """Return DataLoader for training data."""
@@ -107,10 +102,9 @@ class GNNDataModule(pl.LightningDataModule):
             shuffle=False,
             drop_last=True,
         )
-    
+
     def predict_dataloader(self):
-        """Return DataLoader for prediction data. Return full dataset.
-        """
+        """Return DataLoader for prediction data. Return full dataset."""
         return DataLoader(
             self.dataset,
             batch_size=self.batch_size,

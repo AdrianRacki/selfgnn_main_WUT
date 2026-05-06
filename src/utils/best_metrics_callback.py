@@ -1,6 +1,8 @@
 import csv
 import os
+
 import lightning as L
+
 
 class BestMetricsCallback(L.Callback):
     """
@@ -20,8 +22,8 @@ class BestMetricsCallback(L.Callback):
         self.best_score = 1000.0
         self.current_epoch = 0
         self.best_metrics = {}
-        self.lead_metric = 'val_MeanAbsoluteError'
-        
+        self.lead_metric = "val_MeanAbsoluteError"
+
     def on_validation_epoch_end(self, trainer, pl_module) -> None:
         current_metrics = trainer.callback_metrics
 
@@ -30,28 +32,23 @@ class BestMetricsCallback(L.Callback):
             current_epoch = trainer.current_epoch
             if current_score < self.best_score:
                 self.best_score = current_score
-                pl_module.best_metric = self.best_score # type: ignore
+                pl_module.best_metric = self.best_score  # type: ignore
                 self.current_epoch = current_epoch
-                self.best_metrics = {k: v.item() if hasattr(v, 'item') else v 
-                                for k, v in current_metrics.items()}
-                
+                self.best_metrics = {k: v.item() if hasattr(v, "item") else v for k, v in current_metrics.items()}
+
     def on_fit_end(self, trainer, pl_module) -> None:
         if not self.best_metrics:
             return
-            
-        row_data = {
-            'run_name': self.run_name,
-            'best_epoch': self.current_epoch,
-            **self.best_metrics
-        }
-        
+
+        row_data = {"run_name": self.run_name, "best_epoch": self.current_epoch, **self.best_metrics}
+
         file_exists = os.path.exists(self.csv_path)
-        
-        with open(self.csv_path, 'a', newline='') as csvfile:
+
+        with open(self.csv_path, "a", newline="") as csvfile:
             fieldnames = list(row_data.keys())
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            
+
             if not file_exists:
                 writer.writeheader()
-            
+
             writer.writerow(row_data)

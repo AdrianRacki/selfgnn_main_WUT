@@ -1,13 +1,13 @@
 # cSpell:disable
-from typing import Any, Dict, List
+from typing import Any
 
 import torch
 import torch_geometric
 from rdkit import Chem, RDLogger
-from rdkit.Chem import rdMolDescriptors, GraphDescriptors, Descriptors
+from rdkit.Chem import Descriptors, GraphDescriptors, rdMolDescriptors
 from torch_geometric.data import Data
 
-x_map: Dict[str, List[Any]] = {
+x_map: dict[str, list[Any]] = {
     "atomic_num": list(range(0, 119)),
     "chirality": [
         "CHI_UNSPECIFIED",
@@ -38,7 +38,7 @@ x_map: Dict[str, List[Any]] = {
     "is_in_ring": [False, True],
 }
 
-e_map: Dict[str, List[Any]] = {
+e_map: dict[str, list[Any]] = {
     "bond_type": [
         "UNSPECIFIED",
         "SINGLE",
@@ -75,108 +75,155 @@ e_map: Dict[str, List[Any]] = {
     "is_in_ring": [False, True],
 }
 
-def add_global_features(global_features: List[str], graph: Data) -> Data:
-    g = []
+
+def add_graph_mol_mapping(graph: Data) -> Data:
     smiles = graph.smiles
-    mol = Chem.MolFromSmiles(smiles)
-    if "CalcKappa1" in global_features:
-        try: 
-            g.append(float(rdMolDescriptors.CalcKappa1(mol)))
-        except:
-            g.append(0.0)
-            print("CalcKappa1 failed for", smiles)
-    if "CalcKappa2" in global_features:
-        try:
-            g.append(float(rdMolDescriptors.CalcKappa2(mol)))
-        except:
-            g.append(0.0)
-            print("CalcKappa2 failed for", smiles)
-    if "CalcKappa3" in global_features:
-        try:
-            g.append(float(rdMolDescriptors.CalcKappa3(mol)))
-        except:
-            g.append(0.0)
-            print("CalcKappa3 failed for", smiles)
-    if "CalcLabuteASA" in global_features:
-        try:
-            g.append(float(rdMolDescriptors.CalcLabuteASA(mol)))
-        except:
-            g.append(0.0)
-            print("CalcLabuteASA failed for", smiles)
-    if "Chi0" in global_features:
-        try:
-            g.append(float(GraphDescriptors.Chi0(mol)))
-        except:
-            g.append(0.0)
-            print("Chi0 failed for", smiles)
-    if "Chi1" in global_features:
-        try:
-            g.append(float(GraphDescriptors.Chi1(mol)))
-        except:
-            g.append(0.0)
-            print("Chi1 failed for", smiles)
-    if "HeavyAtomMolWt" in global_features:
-        try:
-            g.append(float(Descriptors.HeavyAtomMolWt(mol)))
-        except:
-            g.append(0.0)
-            print("HeavyAtomMolWt failed for", smiles)
-    if "ExactMolWt" in global_features:
-        try:
-            g.append(float(Descriptors.ExactMolWt(mol)))
-        except:
-            g.append(0.0)
-            print("ExactMolWt failed for", smiles)
-    if "MolLogP" in global_features:
-        try:
-            g.append(float(Descriptors.MolLogP(mol)))
-        except:
-            g.append(0.0)
-            print("MolLogP failed for", smiles)
-    if "CalcFractionCSP3" in global_features:
-        try:
-            g.append(float(rdMolDescriptors.CalcFractionCSP3(mol)))
-        except:
-            g.append(0.0)
-            print("CalcFractionCSP3 failed for", smiles)
-    if "CalcHallKierAlpha" in global_features:
-        try:
-            g.append(float(rdMolDescriptors.CalcHallKierAlpha(mol)))
-        except:
-            g.append(0.0)
-            print("CalcHallKierAlpha failed for", smiles)
-    if "PEOE_VSA9" in global_features:
-        try:
-            g.append(float(Chem.MolSurf.PEOE_VSA9(mol)))
-        except:
-            g.append(0.0)
-            print("PEOE_VSA9 failed for", smiles)
-    if "SlogP_VSA1" in global_features:
-        try:
-            g.append(float(Chem.MolSurf.SlogP_VSA1(mol)))
-        except:
-            g.append(0.0)
-            print("SlogP_VSA1 failed for", smiles)
-    if "EState_VSA2" in global_features:
-        try:
-            g.append(float(Chem.EState.EState_VSA.EState_VSA2(mol)))
-        except:
-            g.append(0.0)
-            print("EState_VSA2 failed for", smiles)
-    if "MaxAbsEStateIndex" in global_features:
-        try:
-            g.append(float(Chem.EState.EState.MaxAbsEStateIndex(mol)))
-        except:
-            g.append(0.0)
-            print("MaxAbsEStateIndex failed for", smiles)
-    graph.g = torch.tensor(g, dtype=torch.float).view(1, -1)
+    mol_smiles_list = smiles.split(".")
+    mapping = []
+    for mol_idx, smi in enumerate(mol_smiles_list):
+        mol = Chem.MolFromSmiles(smi)
+        if mol is None:
+            mol = Chem.MolFromSmiles("")
+        mapping.extend([mol_idx] * mol.GetNumAtoms())
+    graph.map = torch.tensor(mapping, dtype=torch.long)
     return graph
+
+
+def split_graph_to_mols(graph: Data) -> list[torch.Tensor]:
+    mol_map = graph.map  # [num_nodes], each value is molecule index
+    num_mols = int(mol_map.max().item()) + 1
+    return [graph.x[mol_map == mol_idx] for mol_idx in range(num_mols)]
+
+
+def split_global_to_mols(graph: Data) -> list[torch.Tensor]:
+    num_mols = graph.g.size(0)
+    return [graph.g[mol_idx].unsqueeze(0) for mol_idx in range(num_mols)]
+
+
+def add_global_features(global_features: list[str], graph: Data, separate_for_mols: bool = False) -> Data:
+    def _compute(mol, smi):
+        g = []
+        if "CalcKappa1" in global_features:
+            try:
+                g.append(float(rdMolDescriptors.CalcKappa1(mol)))
+            except:
+                g.append(0.0)
+                print("CalcKappa1 failed for", smi)
+        if "CalcKappa2" in global_features:
+            try:
+                g.append(float(rdMolDescriptors.CalcKappa2(mol)))
+            except:
+                g.append(0.0)
+                print("CalcKappa2 failed for", smi)
+        if "CalcKappa3" in global_features:
+            try:
+                g.append(float(rdMolDescriptors.CalcKappa3(mol)))
+            except:
+                g.append(0.0)
+                print("CalcKappa3 failed for", smi)
+        if "CalcLabuteASA" in global_features:
+            try:
+                g.append(float(rdMolDescriptors.CalcLabuteASA(mol)))
+            except:
+                g.append(0.0)
+                print("CalcLabuteASA failed for", smi)
+        if "Chi0" in global_features:
+            try:
+                g.append(float(GraphDescriptors.Chi0(mol)))
+            except:
+                g.append(0.0)
+                print("Chi0 failed for", smi)
+        if "Chi1" in global_features:
+            try:
+                g.append(float(GraphDescriptors.Chi1(mol)))
+            except:
+                g.append(0.0)
+                print("Chi1 failed for", smi)
+        if "HeavyAtomMolWt" in global_features:
+            try:
+                g.append(float(Descriptors.HeavyAtomMolWt(mol)))
+            except:
+                g.append(0.0)
+                print("HeavyAtomMolWt failed for", smi)
+        if "ExactMolWt" in global_features:
+            try:
+                g.append(float(Descriptors.ExactMolWt(mol)))
+            except:
+                g.append(0.0)
+                print("ExactMolWt failed for", smi)
+        if "MolLogP" in global_features:
+            try:
+                g.append(float(Descriptors.MolLogP(mol)))
+            except:
+                g.append(0.0)
+                print("MolLogP failed for", smi)
+        if "CalcFractionCSP3" in global_features:
+            try:
+                g.append(float(rdMolDescriptors.CalcFractionCSP3(mol)))
+            except:
+                g.append(0.0)
+                print("CalcFractionCSP3 failed for", smi)
+        if "CalcHallKierAlpha" in global_features:
+            try:
+                g.append(float(rdMolDescriptors.CalcHallKierAlpha(mol)))
+            except:
+                g.append(0.0)
+                print("CalcHallKierAlpha failed for", smi)
+        if "PEOE_VSA9" in global_features:
+            try:
+                g.append(float(Chem.MolSurf.PEOE_VSA9(mol)))
+            except:
+                g.append(0.0)
+                print("PEOE_VSA9 failed for", smi)
+        if "SlogP_VSA1" in global_features:
+            try:
+                g.append(float(Chem.MolSurf.SlogP_VSA1(mol)))
+            except:
+                g.append(0.0)
+                print("SlogP_VSA1 failed for", smi)
+        if "EState_VSA2" in global_features:
+            try:
+                g.append(float(Chem.EState.EState_VSA.EState_VSA2(mol)))
+            except:
+                g.append(0.0)
+                print("EState_VSA2 failed for", smi)
+        if "MaxAbsEStateIndex" in global_features:
+            try:
+                g.append(float(Chem.EState.EState.MaxAbsEStateIndex(mol)))
+            except:
+                g.append(0.0)
+                print("MaxAbsEStateIndex failed for", smi)
+        return g
+
+    smiles = graph.smiles
+    if separate_for_mols:
+        mol_smiles_list = smiles.split(".")
+        all_g = []
+        for smi in mol_smiles_list:
+            mol = Chem.MolFromSmiles(smi)
+            if mol is None:
+                mol = Chem.MolFromSmiles("")
+            all_g.append(_compute(mol, smi))
+        graph.g = torch.tensor(all_g, dtype=torch.float)  # (n_mols, n_features)
+    else:
+        mol = Chem.MolFromSmiles(smiles)
+        graph.g = torch.tensor(_compute(mol, smiles), dtype=torch.float).view(1, -1)
+    return graph
+
 
 def from_rdmol(
     mol: Any,
-    node_features: List[str] = ['atomic_num', 'chirality', 'degree', 'formal_charge', 
-                              'num_hs', 'hybridization', 'is_aromatic', 'is_in_ring'],
-    edge_features: List[str] = ['bond_type', 'stereo', 'is_conjugated', 'is_in_ring']
+    node_features: list[str] = [
+        "atomic_num",
+        "chirality",
+        "degree",
+        "formal_charge",
+        "num_hs",
+        "hybridization",
+        "is_aromatic",
+        "is_in_ring",
+    ],
+    edge_features: list[str] = ["bond_type", "stereo", "is_conjugated", "is_in_ring"],
 ) -> "torch_geometric.data.Data":  # type: ignore
     r"""Converts a :class:`rdkit.Chem.Mol` instance to a
     :class:`torch_geometric.data.Data` instance.
@@ -188,27 +235,27 @@ def from_rdmol(
     """
     assert isinstance(mol, Chem.Mol)
 
-    xs: List[List[int]] = []
+    xs: list[list[int]] = []
     for atom in mol.GetAtoms():  # type: ignore
-        row: List[int] = []
+        row: list[int] = []
         for feature in node_features:
-            if feature == 'atomic_num':
+            if feature == "atomic_num":
                 row.append(1 + x_map["atomic_num"].index(atom.GetAtomicNum()))
-            elif feature == 'chirality':
+            elif feature == "chirality":
                 row.append(1 + x_map["chirality"].index(str(atom.GetChiralTag())))
-            elif feature == 'degree':
+            elif feature == "degree":
                 row.append(1 + x_map["degree"].index(atom.GetTotalDegree()))
-            elif feature == 'formal_charge':
+            elif feature == "formal_charge":
                 row.append(1 + x_map["formal_charge"].index(atom.GetFormalCharge()))
-            elif feature == 'num_hs':
+            elif feature == "num_hs":
                 row.append(1 + x_map["num_hs"].index(atom.GetTotalNumHs()))
-            elif feature == 'num_radical_electrons':
+            elif feature == "num_radical_electrons":
                 row.append(1 + x_map["num_radical_electrons"].index(atom.GetNumRadicalElectrons()))
-            elif feature == 'hybridization':
+            elif feature == "hybridization":
                 row.append(1 + x_map["hybridization"].index(str(atom.GetHybridization())))
-            elif feature == 'is_aromatic':
+            elif feature == "is_aromatic":
                 row.append(1 + x_map["is_aromatic"].index(atom.GetIsAromatic()))
-            elif feature == 'is_in_ring':
+            elif feature == "is_in_ring":
                 row.append(1 + x_map["is_in_ring"].index(atom.IsInRing()))
         xs.append(row)
 
@@ -221,13 +268,13 @@ def from_rdmol(
 
         e = []
         for feature in edge_features:
-            if feature == 'bond_type':
+            if feature == "bond_type":
                 e.append(1 + e_map["bond_type"].index(str(bond.GetBondType())))
-            elif feature == 'stereo':
+            elif feature == "stereo":
                 e.append(1 + e_map["stereo"].index(str(bond.GetStereo())))
-            elif feature == 'is_conjugated':
+            elif feature == "is_conjugated":
                 e.append(1 + e_map["is_conjugated"].index(bond.GetIsConjugated()))
-            elif feature == 'is_in_ring':
+            elif feature == "is_in_ring":
                 e.append(1 + e_map["is_in_ring"].index(bond.IsInRing()))
 
         edge_indices += [[i, j], [j, i]]
@@ -235,9 +282,7 @@ def from_rdmol(
 
     edge_index = torch.tensor(edge_indices)
     edge_index = edge_index.t().to(torch.long).view(2, -1)
-    edge_attr = torch.tensor(edge_attrs, dtype=torch.long).view(
-        -1, len(edge_features)
-    )  # 2nd number in view is edge dim
+    edge_attr = torch.tensor(edge_attrs, dtype=torch.long).view(-1, len(edge_features))  # 2nd number in view is edge dim
 
     if edge_index.numel() > 0:  # Sort indices.
         perm = (edge_index[0] * x.size(0) + edge_index[1]).argsort()
@@ -250,9 +295,17 @@ def from_smiles(
     smiles: str,
     with_hydrogen: bool = False,
     kekulize: bool = False,
-    node_features: List[str] = ['atomic_num', 'chirality', 'degree', 'formal_charge', 
-                              'num_hs', 'hybridization', 'is_aromatic', 'is_in_ring'],
-    edge_features: List[str] = ['bond_type', 'stereo', 'is_conjugated', 'is_in_ring']
+    node_features: list[str] = [
+        "atomic_num",
+        "chirality",
+        "degree",
+        "formal_charge",
+        "num_hs",
+        "hybridization",
+        "is_aromatic",
+        "is_in_ring",
+    ],
+    edge_features: list[str] = ["bond_type", "stereo", "is_conjugated", "is_in_ring"],
 ) -> "torch_geometric.data.Data":  # type: ignore
     r"""Converts a SMILES string to a :class:`torch_geometric.data.Data`
     instance.

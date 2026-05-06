@@ -1,4 +1,0 @@
-_target_: model.GraphModelWrapper
-gating: false
-experts:
-  - _target_: model.GlobalFeaturesModule

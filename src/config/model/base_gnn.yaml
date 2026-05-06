@@ -1,0 +1,27 @@
+_target_: model.base.BaseModel
+embedding_layer:
+  _target_: model.embedding.GraphEmbeddingLayer
+  node_feature_sizes: ${data.dataset.node_features.sizes}
+  edge_feature_sizes: ${data.dataset.edge_features.sizes}
+  global_features_module:
+    _target_: torch.nn.Linear
+    in_features: 15
+    out_features: 15
+  emb_size: 6
+encoder_layer:
+  _target_: model.encoder.GATEncoder
+  _partial_: true
+  hidden_dim: 32
+  num_heads: 2
+  num_layers: 2
+pooling_layer:
+  _target_: model.poolingidac.GraphPooling
+  pooling_layer:
+    _target_: torch_geometric.nn.aggr.SoftmaxAggregation
+    t: 2.0
+    learn: true
+projector_layer:
+  _target_: model.generic.Projector
+  _partial_: true
+  out_features: 1
+  dropout_rate: 0.5

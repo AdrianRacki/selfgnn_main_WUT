@@ -2,7 +2,7 @@ early_stopper:
   _target_: lightning.pytorch.callbacks.EarlyStopping
   monitor: val_R2Score
   min_delta: 0.005
-  patience: 35
+  patience: 50
   verbose: False
   mode: max
   strict: True
@@ -17,5 +17,3 @@ best_metrics:
   run_name: ${run_name}
 model_summary:
   _target_: lightning.pytorch.callbacks.ModelSummary
-
-

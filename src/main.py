@@ -1,15 +1,17 @@
+import argparse
+
+import tqdm
 from hydra.utils import instantiate
 
 from config_utils import load_config
-from module import GraphPredictor
 from datamodule import GNNDataModule
-import argparse
-import tqdm
+from module import GraphPredictor
+
 
 def main(experiment_name: str, overrides: list[str] | None = None, predict: bool = True) -> tuple[GraphPredictor, GNNDataModule]:
     print("Running main")
     print("Loading config")
-    config = load_config(experiment_name = experiment_name, overrides=overrides)
+    config = load_config(experiment_name=experiment_name, overrides=overrides)
     print("Loading data")
     dataset = instantiate(config.data.dataset)
     datamodule = instantiate(config.data.datamodule, dataset=dataset)
@@ -26,6 +28,7 @@ def main(experiment_name: str, overrides: list[str] | None = None, predict: bool
         trainer.predict(module, datamodule.predict_dataloader())
     return module, datamodule
 
+
 def main_nfolds(experiment_name: str, n_folds: int, overrides: list[str] | None = None, run_name: str | None = None):
     for fold in tqdm.tqdm(range(n_folds), desc="Running k-fold"):
         fold_overrides = [f"run_name={experiment_name}_{run_name}_fold"]
@@ -39,6 +42,7 @@ def main_nfolds(experiment_name: str, n_folds: int, overrides: list[str] | None 
         callbacks = list(instantiate(config.callbacks).values())
         trainer = instantiate(config.trainer.trainer, callbacks=callbacks)
         trainer.fit(module, datamodule.train_dataloader(), datamodule.val_dataloader())
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train a model")
@@ -67,6 +71,7 @@ def parse_args():
     )
     args, unknown = parser.parse_known_args()
     return args, unknown
+
 
 if __name__ == "__main__":
     args, unknown = parse_args()

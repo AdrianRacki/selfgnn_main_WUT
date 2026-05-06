@@ -1,10 +1,9 @@
-from typing import List
-
 import pandas as pd
 from torch_geometric.data import InMemoryDataset
 from tqdm import tqdm
 
-from utils import from_smiles, add_global_features
+from utils import add_global_features, add_graph_mol_mapping, from_smiles
+
 
 class LabeledGraphDataset(InMemoryDataset):
     def __init__(
@@ -15,6 +14,7 @@ class LabeledGraphDataset(InMemoryDataset):
         raw_filename: str,
         processed_filename: str,
         global_features,
+        separate_global_features: bool = False,
         append_temperature_vector: bool = True,
         transform=None,
         pre_transform=None,
@@ -25,16 +25,17 @@ class LabeledGraphDataset(InMemoryDataset):
         self.global_features = global_features.features
         self.raw_filename = [raw_filename]
         self.processed_filename = [processed_filename]
+        self.separate_global_features = separate_global_features
         self.append_temperature_vector = append_temperature_vector
         super().__init__(root, transform, pre_transform, pre_filter)
         self.load(self.processed_paths[0])
 
     @property
-    def raw_file_names(self) -> List[str]:
+    def raw_file_names(self) -> list[str]:
         return self.raw_filename
 
     @property
-    def processed_file_names(self) -> List[str]:
+    def processed_file_names(self) -> list[str]:
         return self.processed_filename
 
     def download(self) -> None:
@@ -52,7 +53,8 @@ class LabeledGraphDataset(InMemoryDataset):
                 edge_features=self.edge_features,
             )
             data.y = float(mp)
-            data = add_global_features(self.global_features, data)
+            data = add_global_features(self.global_features, data, separate_for_mols=self.separate_global_features)
+            data = add_graph_mol_mapping(data)
             if self.append_temperature_vector:
                 data.temperature = row["temperature"]
 
@@ -67,6 +69,3 @@ class LabeledGraphDataset(InMemoryDataset):
             data_list = [self.pre_transform(data) for data in data_list]
 
         self.save(data_list, self.processed_paths[0])
-
-
-

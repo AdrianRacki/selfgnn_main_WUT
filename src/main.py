@@ -48,6 +48,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Train a model")
     parser.add_argument(
         "--run_name",
+        "--run_id",
         type=str,
         default="default_run",
         help="Name of the run",

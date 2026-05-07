@@ -2,7 +2,7 @@ defaults:
   - _self_
   - callbacks: default
   - data: default
-  - model: base_gnn_idac
+  - model: base_gnn_idac_gated
   - trainer: default
   - metrics: regression
 

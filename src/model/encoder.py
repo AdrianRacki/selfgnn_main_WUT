@@ -16,7 +16,7 @@ class BaseEncoder(ABC, nn.Module):
         node_input_dim: int,
         edge_input_dim: int,
         num_layers: int = 2,
-        dropout_rate: float = 0.3,
+        dropout_rate: float = 0.1,
     ):
         super().__init__()
 
@@ -117,7 +117,7 @@ class GINEncoder(BaseEncoder):
         node_input_dim: int,
         edge_input_dim: int,
         num_layers: int = 2,
-        dropout_rate: float = 0.3,
+        dropout_rate: float = 0.1,
         internal_model: str = "MLP",  # "MLP" or "CrossNetV2"
         cross_layers: int = 1,
     ):

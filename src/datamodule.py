@@ -88,7 +88,7 @@ class GNNDataModule(pl.LightningDataModule):
             self.val_dataset,  # type: ignore
             batch_size=self.batch_size,
             shuffle=False,
-            drop_last=True,
+            drop_last=False,
         )
 
     def test_dataloader(self):

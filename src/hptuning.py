@@ -4,7 +4,7 @@ from hydra.utils import instantiate
 from config_utils import load_config
 from module import GraphPredictor
 
-EXPERIMENT_NAME = "mp_base"
+EXPERIMENT_NAME = "empty"
 DIRECTION = "minimize"
 
 
@@ -12,8 +12,8 @@ def objective(trial: optuna.trial.Trial) -> float:
 
     # Hyperparameter search space
     lr = trial.suggest_float("trainer.optimizer.lr", 1e-5, 0.01, log=True)
-    weight_decay = trial.suggest_float("trainer.optimizer.weight_decay", 1e-5, 0.01, log=True)
-    batch_size = trial.suggest_float("data.datamodule.batch_size", 16, 64, step=4)
+    weight_decay = trial.suggest_float("trainer.optimizer.weight_decay", 1e-5, 0.001, log=True)
+    batch_size = trial.suggest_float("data.datamodule.batch_size", 32, 128, step=4)
 
     overrides = [
         f"trainer.optimizer.lr={lr}",
@@ -35,6 +35,6 @@ def objective(trial: optuna.trial.Trial) -> float:
 
 if __name__ == "__main__":
     study = optuna.create_study(study_name="Hptuning", load_if_exists=True, direction=DIRECTION, storage="sqlite:///optuna_study.db")
-    study.optimize(objective, n_trials=50)
+    study.optimize(objective, n_trials=100)
     print(study.best_params)
     print(study.best_value)

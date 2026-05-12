@@ -90,7 +90,7 @@ class GraphPredictor(L.LightningModule):
             "optimizer": self.optimizer,
             "lr_scheduler": {
                 "scheduler": self.scheduler,
-                "interval": "step",
+                "interval": "epoch",
                 "frequency": 1,
             },
         }

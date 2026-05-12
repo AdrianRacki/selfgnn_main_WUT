@@ -3,11 +3,9 @@ optimizer:
   lr: 0.05
   weight_decay: 0.001
 scheduler:
-  _target_: torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
-  T_0: 5
-  T_mult: 2
+  _target_: torch.optim.lr_scheduler.CosineAnnealingLR
+  T_max: 100
   eta_min: 1e-5
-
 loss:
   _target_: torch.nn.MSELoss
 
@@ -18,7 +16,7 @@ trainer:
   min_epochs: 200
   max_epochs: 200
   accelerator: cpu
-  logger: null
+
     # _target_: lightning.pytorch.loggers.litlogger.LitLogger
     # name: ${run_name}
     # teamspace: IDAC-experiments

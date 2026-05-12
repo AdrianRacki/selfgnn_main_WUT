@@ -100,7 +100,7 @@ def split_global_to_mols(graph: Data) -> list[torch.Tensor]:
     return [graph.g[mol_idx].unsqueeze(0) for mol_idx in range(num_mols)]
 
 
-def add_global_features(global_features: list[str], graph: Data, separate_for_mols: bool = False) -> Data:
+def add_global_features(global_features: list[str], graph: Data, separate_for_mols: bool = True) -> Data:
     def _compute(mol, smi):
         g = []
         if "CalcKappa1" in global_features:
@@ -234,6 +234,78 @@ def from_rdmol(
         edge_features (List[str], optional): Edge features to include in the graph.
     """
     assert isinstance(mol, Chem.Mol)
+    pt = Chem.GetPeriodicTable()
+    _nx_features = {"closness_centrality", "betweenness_centrality", "harmonic_centrality", "page_rank"}
+    _conformer_features = {"sasa", "normalized_distance_to_centroid"}
+    if any(f in node_features for f in _nx_features):
+        import networkx as nx
+
+        nx_frag_indices = Chem.GetMolFrags(mol)
+        nx_frag_mols = Chem.GetMolFrags(mol, asMols=True)
+
+        closeness_map: dict[int, float] = {}
+        betweenness_map: dict[int, float] = {}
+        harmonic_map: dict[int, float] = {}
+        pagerank_map: dict[int, float] = {}
+        for orig_indices, frag_mol in zip(nx_frag_indices, nx_frag_mols):
+            g_nx = nx.Graph()
+            g_nx.add_nodes_from(range(frag_mol.GetNumAtoms()))
+            for bond in frag_mol.GetBonds():
+                g_nx.add_edge(bond.GetBeginAtomIdx(), bond.GetEndAtomIdx())
+            if "closness_centrality" in node_features:
+                cc = nx.closeness_centrality(g_nx)
+                for frag_idx, orig_idx in enumerate(orig_indices):
+                    closeness_map[orig_idx] = cc.get(frag_idx, 0.0)
+            if "betweenness_centrality" in node_features:
+                bc = nx.betweenness_centrality(g_nx)
+                for frag_idx, orig_idx in enumerate(orig_indices):
+                    betweenness_map[orig_idx] = bc.get(frag_idx, 0.0)
+            if "harmonic_centrality" in node_features:
+                hc = nx.harmonic_centrality(g_nx)
+                for frag_idx, orig_idx in enumerate(orig_indices):
+                    harmonic_map[orig_idx] = hc.get(frag_idx, 0.0)
+            if "page_rank" in node_features:
+                pr = nx.pagerank(g_nx)
+                for frag_idx, orig_idx in enumerate(orig_indices):
+                    pagerank_map[orig_idx] = pr.get(frag_idx, 0.0)
+    if any(f in node_features for f in _conformer_features):
+        from rdkit.Chem import AllChem, rdFreeSASA
+
+        frag_atom_indices = Chem.GetMolFrags(mol)
+        frag_mols = Chem.GetMolFrags(mol, asMols=True)
+
+        sasa_map: dict[int, float] = {}
+        dist_map: dict[int, float] = {}
+        for orig_indices, frag_mol in zip(frag_atom_indices, frag_mols):
+            frag_hs = Chem.AddHs(frag_mol)
+            params = AllChem.ETKDGv3()
+            params.randomSeed = 42
+            res = AllChem.EmbedMolecule(frag_hs, params)
+            if res == -1:
+                for orig_idx in orig_indices:
+                    sasa_map[orig_idx] = 0.0
+                    dist_map[orig_idx] = 0.0
+                continue
+
+            if "sasa" in node_features:
+                radii = rdFreeSASA.classifyAtoms(frag_hs)
+                rdFreeSASA.CalcSASA(frag_hs, radii)
+
+            if "normalized_distance_to_centroid" in node_features:
+                conf = frag_hs.GetConformer()
+                n_heavy = frag_mol.GetNumAtoms()
+                positions = [conf.GetAtomPosition(i) for i in range(n_heavy)]
+                cx = sum(p.x for p in positions) / n_heavy
+                cy = sum(p.y for p in positions) / n_heavy
+                cz = sum(p.z for p in positions) / n_heavy
+                dists = [((p.x - cx) ** 2 + (p.y - cy) ** 2 + (p.z - cz) ** 2) ** 0.5 for p in positions]
+                max_dist = max(dists) if max(dists) > 0 else 1.0
+                for frag_idx, orig_idx in enumerate(orig_indices):
+                    dist_map[orig_idx] = dists[frag_idx] / max_dist
+
+            for frag_idx, orig_idx in enumerate(orig_indices):
+                if "sasa" in node_features:
+                    sasa_map[orig_idx] = float(frag_hs.GetAtomWithIdx(frag_idx).GetDoubleProp("SASA"))
 
     xs: list[list[int]] = []
     for atom in mol.GetAtoms():  # type: ignore
@@ -257,9 +329,41 @@ def from_rdmol(
                 row.append(1 + x_map["is_aromatic"].index(atom.GetIsAromatic()))
             elif feature == "is_in_ring":
                 row.append(1 + x_map["is_in_ring"].index(atom.IsInRing()))
+            elif feature == "logp_contrib":
+                logp_contrib, _ = _get_logp_mr_contrib(mol, atom.GetIdx())  # type: ignore
+                row.append(logp_contrib)
+            elif feature == "mr_contrib":
+                _, mr_contrib = _get_logp_mr_contrib(mol, atom.GetIdx())  # type: ignore
+                row.append(mr_contrib)
+            elif feature == "ring_size":
+                ring_info = mol.GetRingInfo()
+                ring_size = ring_info.AtomRingSizes(atom.GetIdx())
+                if ring_size:
+                    row.append(ring_size[0])  # type: ignore
+                else:
+                    row.append(0.0)  # type: ignore
+            elif feature == "vdw_radius":
+                row.append(pt.GetRvdw(atom.GetAtomicNum()))  # type: ignore
+            elif feature == "atomic_mass":
+                row.append(pt.GetAtomicWeight(atom.GetAtomicNum()))  # type: ignore
+            elif feature == "cov_radius":
+                row.append(pt.GetRcovalent(atom.GetAtomicNum()))  # type: ignore
+            elif feature == "sasa":
+                row.append(sasa_map.get(atom.GetIdx(), 0.0))
+            elif feature == "normalized_distance_to_centroid":
+                row.append(dist_map.get(atom.GetIdx(), 0.0))
+            elif feature == "closness_centrality":
+                row.append(closeness_map.get(atom.GetIdx(), 0.0))
+            elif feature == "betweenness_centrality":
+                row.append(betweenness_map.get(atom.GetIdx(), 0.0))
+            elif feature == "harmonic_centrality":
+                row.append(harmonic_map.get(atom.GetIdx(), 0.0))
+            elif feature == "page_rank":
+                row.append(pagerank_map.get(atom.GetIdx(), 0.0))
+
         xs.append(row)
 
-    x = torch.tensor(xs, dtype=torch.long).view(-1, len(node_features))
+    x = torch.tensor(xs, dtype=torch.float32).view(-1, len(node_features))
 
     edge_indices, edge_attrs = [], []
     for bond in mol.GetBonds():  # type: ignore
@@ -291,6 +395,17 @@ def from_rdmol(
     return Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
 
 
+def _get_logp_mr_contrib(mol: Any, atom_idx: int) -> tuple[float, float]:
+    """Get the contribution of a specific atom to the molecule's logP and MR."""
+    try:
+        contribs = rdMolDescriptors._CalcCrippenContribs(mol)  # type: ignore
+        logp_contrib, mr_contrib = contribs[atom_idx]
+        return float(logp_contrib), float(mr_contrib)
+    except:
+        print(f"Failed to compute logP/MR contrib for atom {atom_idx} in molecule {Chem.MolToSmiles(mol)}")
+        return 0.0, 0.0
+
+
 def from_smiles(
     smiles: str,
     with_hydrogen: bool = False,
@@ -304,6 +419,18 @@ def from_smiles(
         "hybridization",
         "is_aromatic",
         "is_in_ring",
+        "logp_contrib",  # float
+        "mr_contrib",  # float
+        "ring_size",
+        "vdw_radius",  # float
+        "cov_radius",  # float
+        "atomic_mass",  # float
+        "sasa",  # float
+        "normalized_distance_to_centroid",  # float
+        "closness_centrality",  # float
+        "betweenness_centrality",  # float
+        "harmonic_centrality",  # float
+        "page_rank",  # float
     ],
     edge_features: list[str] = ["bond_type", "stereo", "is_conjugated", "is_in_ring"],
 ) -> "torch_geometric.data.Data":  # type: ignore

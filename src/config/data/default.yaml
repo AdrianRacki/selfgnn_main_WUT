@@ -6,7 +6,7 @@ dataset:
   append_temperature_vector: true
   separate_global_features: true
   node_features:
-    sizes: [120, 10, 20, 10, 10, 10, 3, 3]
+    sizes: [120, 10, 20, 10, 10, 10, 3, 3, 0, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0] # 0 for float
     features:
     - atomic_num
     - chirality
@@ -16,6 +16,18 @@ dataset:
     - num_hs
     - is_aromatic
     - is_in_ring
+    - logp_contrib  # float
+    - mr_contrib  # float
+    - ring_size # int
+    - vdw_radius  # float
+    - cov_radius  # float
+    - atomic_mass  # float
+    - sasa  # float
+    - normalized_distance_to_centroid  # float
+    - closness_centrality  # float
+    - betweenness_centrality  # float
+    - harmonic_centrality  # float
+    - page_rank  # float
   edge_features:
     sizes: [20, 3, 3, 6]
     features:

@@ -1,3 +1,4 @@
+# THIS IS BASELINE MODEL CONFIGURATION
 _target_: model.base.BaseModel
 embedding_layer:
   _target_: model.embedding.GraphEmbeddingLayer
@@ -12,9 +13,9 @@ embedding_layer:
 encoder_layer:
   _target_: model.gated_encoder.GatedEncoder
   _partial_: true
-  hidden_dim: 32
+  hidden_dim: 64
   num_layers: 2
-  n_experts: 3
+  n_experts: 6
   encoder_type: "GIN"
   shared_expert: true
   internal_model: "CrossNetV2"

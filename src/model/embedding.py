@@ -38,8 +38,8 @@ class GraphEmbeddingLayer(nn.Module):
 
     @property
     def node_output_dim(self) -> int:
-        return self.emb_size * self.node_dim
+        return self.node_emb_layer.output_dim
 
     @property
     def edge_output_dim(self) -> int:
-        return self.emb_size * self.edge_dim
+        return self.edge_emb_layer.output_dim

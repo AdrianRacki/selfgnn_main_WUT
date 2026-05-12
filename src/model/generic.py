@@ -8,16 +8,24 @@ class EmbeddingLayer(torch.nn.Module):
     def __init__(self, size_of_dicts: list[int], emb_size: int):
         super().__init__()
         self._in_features = len(size_of_dicts)
-        self.emb_layers = torch.nn.ModuleList()
-        for dict_size in size_of_dicts:
-            self.emb_layers.append(Embedding(num_embeddings=dict_size, embedding_dim=emb_size, padding_idx=0))
+        self._emb_size = emb_size
+        self._passthrough = [i for i, s in enumerate(size_of_dicts) if s == 0]
+        self._to_embed = [i for i, s in enumerate(size_of_dicts) if s > 0]
+        self.emb_layers = torch.nn.ModuleList(
+            [Embedding(num_embeddings=s, embedding_dim=emb_size, padding_idx=0) for s in size_of_dicts if s > 0]
+        )
+
+    @property
+    def output_dim(self) -> int:
+        return len(self._to_embed) * self._emb_size + len(self._passthrough)
 
     def forward(self, x: torch.Tensor):
-        emb_list = []
-        for idx, layer in enumerate(self.emb_layers):
-            emb_list.append(layer(x[:, idx]))
-        x = torch.cat(emb_list, dim=1)
-        return x
+        parts: list[torch.Tensor] = [None] * self._in_features  # type: ignore
+        for emb_idx, feat_idx in enumerate(self._to_embed):
+            parts[feat_idx] = self.emb_layers[emb_idx](x[:, feat_idx].long())
+        for feat_idx in self._passthrough:
+            parts[feat_idx] = x[:, feat_idx].unsqueeze(1)
+        return torch.cat(parts, dim=1)
 
 
 class Projector(torch.nn.Module):

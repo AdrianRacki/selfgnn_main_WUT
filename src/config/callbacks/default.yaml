@@ -2,7 +2,7 @@ early_stopper:
   _target_: lightning.pytorch.callbacks.EarlyStopping
   monitor: val_R2Score
   min_delta: 0.005
-  patience: 50
+  patience: 500
   verbose: False
   mode: max
   strict: True

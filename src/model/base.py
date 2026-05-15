@@ -20,7 +20,7 @@ class BaseModel(nn.Module):
             node_input_dim=self.embedding_layer.node_output_dim,
             edge_input_dim=self.embedding_layer.edge_output_dim,
         )
-        self.pooling_layer = pooling_layer(channels=self.encoder_layer.output_dim)
+        self.pooling_layer = pooling_layer
         pooling_multiplier = getattr(self.pooling_layer, "output_multiplier", 1)
         self.projector_layer = projector_layer(in_features=self.encoder_layer.output_dim * pooling_multiplier)
 

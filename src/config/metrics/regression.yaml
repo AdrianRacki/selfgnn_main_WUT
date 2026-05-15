@@ -4,7 +4,3 @@ mse:
   _target_: torchmetrics.MeanSquaredError
 mae:
   _target_: torchmetrics.MeanAbsoluteError
-pearson:
-  _target_: torchmetrics.PearsonCorrCoef
-mape:
-  _target_: torchmetrics.MeanAbsolutePercentageError

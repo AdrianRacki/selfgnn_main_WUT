@@ -1,4 +1,3 @@
-# THIS IS BASELINE MODEL CONFIGURATION
 _target_: model.base.BaseModel
 embedding_layer:
   _target_: model.embedding.GraphEmbeddingLayer
@@ -8,26 +7,20 @@ embedding_layer:
     _target_: torch.nn.Linear
     in_features: 15
     out_features: 15
-    bias: false
-  emb_size: 6
+  emb_size: 4
 encoder_layer:
-  _target_: model.gated_encoder.GatedEncoder
+  _target_: model.encoder.GATEncoder
   _partial_: true
-  hidden_dim: 64
+  hidden_dim: 32
+  num_heads: 1
   num_layers: 2
-  n_experts: 6
-  encoder_type: "GIN"
-  shared_expert: true
-  internal_model: "CrossNetV2"
-  cross_layers: 1
 pooling_layer:
   _target_: model.pooling.IDACPooling
-  _partial_: true
   num_mols: 3
 projector_layer:
   _target_: model.idac_layers.IDACProjector
   _partial_: true
   out_features: 1
-  dropout_rate: 0.1
-  append_global_features: true
+  dropout_rate: 0.15
+  append_global_features: false
   global_features_size: 45  # num mols * num global features

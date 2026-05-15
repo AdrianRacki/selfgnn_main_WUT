@@ -9,7 +9,7 @@ early_stopper:
   check_finite: True
 lr_monitor:
   _target_: lightning.pytorch.callbacks.LearningRateMonitor
-  logging_interval: step
+  logging_interval: epoch
   log_momentum: False
   log_weight_decay: False
 best_metrics:

@@ -26,7 +26,7 @@ class GatedEncoder(nn.Module):
         node_input_dim: int,
         edge_input_dim: int,
         num_layers: int = 2,
-        dropout_rate: float = 0.1,
+        dropout_rate: float = 0.15,
         n_experts: int = 3,
         encoder_type: str = "GIN",
         shared_expert: bool = False,
@@ -34,7 +34,7 @@ class GatedEncoder(nn.Module):
         internal_model: str = "MLP",
         cross_layers: int = 1,
         # GAT-specific
-        num_heads: int = 2,
+        num_heads: int = 1,
     ):
         super().__init__()
 

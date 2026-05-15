@@ -23,6 +23,7 @@ dependencies = [
     "optuna-integration>=4.2.1",
     "ruff>=0.15.12",
     "litlogger>=2026.4.16",
+    "mlflow>=3.12.0",
 ]
 
 [tool.uv]

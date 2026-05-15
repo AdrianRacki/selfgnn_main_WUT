@@ -7,7 +7,7 @@ class IDACProjector(torch.nn.Module):
         self,
         in_features: int,
         out_features: int = 1,
-        dropout_rate: float = 0.3,
+        dropout_rate: float = 0.15,
         append_global_features: bool = True,
         global_features_size: int = 45,
     ):
@@ -18,11 +18,11 @@ class IDACProjector(torch.nn.Module):
         self.dropout = torch.nn.ModuleList()
         self.out_features = out_features
         self.append_global_features = append_global_features
-        temperature_size = 8
-        self.temperature_projector = torch.nn.Linear(1, temperature_size, bias=False)
+        temperature_size = 1
+        self.temperature_projector = torch.nn.Identity()
         in_features = in_features + temperature_size + global_features_size if append_global_features else in_features + temperature_size
         self.input_batchnorm = torch.nn.BatchNorm1d(in_features)
-        sizes = [in_features, 64, 32, out_features]
+        sizes = [in_features, in_features // 2, in_features // 2, in_features // 4, out_features]
 
         for i in range(len(sizes) - 1):
             self.layers.append(torch.nn.Linear(sizes[i], sizes[i + 1]))

@@ -1,0 +1,27 @@
+_target_: model.base.BaseModel
+embedding_layer:
+  _target_: model.embedding.GraphEmbeddingLayer
+  node_feature_sizes: ${data.dataset.node_features.sizes}
+  edge_feature_sizes: ${data.dataset.edge_features.sizes}
+  global_features_module:
+    _target_: torch.nn.Linear
+    in_features: 15
+    out_features: 15
+  emb_size: 4
+encoder_layer:
+  _target_: model.encoder.GINEncoder
+  _partial_: true
+  hidden_dim: 32
+  num_layers: 2
+  internal_model: "CrossNetV2"
+  cross_layers: 1
+pooling_layer:
+  _target_: model.pooling.IDACPooling
+  num_mols: 3
+projector_layer:
+  _target_: model.idac_layers.IDACProjector
+  _partial_: true
+  out_features: 1
+  dropout_rate: 0.15
+  append_global_features: false
+  global_features_size: 45  # num mols * num global features

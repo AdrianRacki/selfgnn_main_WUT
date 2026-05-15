@@ -11,14 +11,16 @@ DIRECTION = "minimize"
 def objective(trial: optuna.trial.Trial) -> float:
 
     # Hyperparameter search space
-    lr = trial.suggest_float("trainer.optimizer.lr", 1e-5, 0.01, log=True)
+    lr = trial.suggest_float("trainer.optimizer.lr", 0.0001, 0.01, log=True)
     weight_decay = trial.suggest_float("trainer.optimizer.weight_decay", 1e-5, 0.001, log=True)
-    batch_size = trial.suggest_float("data.datamodule.batch_size", 32, 128, step=4)
+    huber_delta = trial.suggest_float("loss.delta", 0.1, 0.3, step=0.05)
 
     overrides = [
+        "model=GIN",
+        "trainer.trainer.max_epochs=50",
         f"trainer.optimizer.lr={lr}",
         f"trainer.optimizer.weight_decay={weight_decay}",
-        f"data.datamodule.batch_size={int(batch_size)}",
+        f"trainer.loss.delta={huber_delta}",
         "run_name=Hptuning",
     ]
 

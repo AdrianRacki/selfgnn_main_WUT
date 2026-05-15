@@ -55,6 +55,6 @@ dataset:
 
 datamodule:
   _target_: datamodule.GNNDataModule
-  batch_size: 256
+  batch_size: 64
   data_split: 0.9
   seed: 42

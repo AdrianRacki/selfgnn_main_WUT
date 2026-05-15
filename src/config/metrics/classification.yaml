@@ -1,3 +1,0 @@
-auroc:
-  _target_: torchmetrics.AUROC
-  task: binary

@@ -29,11 +29,13 @@ class BaseEncoder(ABC, nn.Module):
         self.gnn_layers = self._get_gnn_layers()
         self.norm_layers = ModuleList()
         self.act_layers = ModuleList()
+        self.dropout_layers = ModuleList()
 
         for i in range(self.num_layers):
             layer_input_dim = self._get_layer_input_dim(i)
             self.norm_layers.append(GraphNorm(layer_input_dim))
             self.act_layers.append(PReLU())
+            self.dropout_layers.append(nn.Dropout(self.dropout_rate))
 
     @abstractmethod
     def _get_gnn_layers(self) -> ModuleList:
@@ -62,6 +64,7 @@ class BaseEncoder(ABC, nn.Module):
             x = self.gnn_layers[i](x, edge_index, edge_attr)
             x = self.norm_layers[i](x, batch_index)
             x = self.act_layers[i](x)
+            x = self.dropout_layers[i](x)
             x = x + fx if i > 0 else x
         return x
 
@@ -148,8 +151,8 @@ class GINEncoder(BaseEncoder):
             embedding_dim=input_dim,
             out_dim=output_dim,
             cross_layers=self.cross_layers,
-            mlp_sizes=[16, 16],
-            structure="parallel",
+            mlp_sizes=[self.hidden_dim, self.hidden_dim],
+            structure="stacked",
         )
 
     def _get_gnn_layers(self) -> ModuleList:

@@ -95,6 +95,15 @@ def split_graph_to_mols(graph: Data) -> list[torch.Tensor]:
     return [graph.x[mol_map == mol_idx] for mol_idx in range(num_mols)]
 
 
+def split_graph_by_map(graph: Data) -> list[tuple[torch.Tensor, torch.Tensor]]:
+    """Split node features and batch indices by molecule mapping.
+
+    Returns a list of (x_mol, batch_mol) tuples, one per molecule.
+    """
+    num_mols = int(graph.map.max().item()) + 1
+    return [(graph.x[graph.map == mol_idx], graph.batch[graph.map == mol_idx]) for mol_idx in range(num_mols)]
+
+
 def split_global_to_mols(graph: Data) -> list[torch.Tensor]:
     num_mols = graph.g.size(0)
     return [graph.g[mol_idx].unsqueeze(0) for mol_idx in range(num_mols)]
@@ -339,9 +348,9 @@ def from_rdmol(
                 ring_info = mol.GetRingInfo()
                 ring_size = ring_info.AtomRingSizes(atom.GetIdx())
                 if ring_size:
-                    row.append(ring_size[0])  # type: ignore
+                    row.append(1 + ring_size[0])  # type: ignore
                 else:
-                    row.append(0.0)  # type: ignore
+                    row.append(0)  # type: ignore
             elif feature == "vdw_radius":
                 row.append(pt.GetRvdw(atom.GetAtomicNum()))  # type: ignore
             elif feature == "atomic_mass":

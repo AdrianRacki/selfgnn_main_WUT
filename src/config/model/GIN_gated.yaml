@@ -9,6 +9,7 @@ embedding_layer:
     in_features: 15
     out_features: 15
   emb_size: 4
+  global_features_size: 15
 encoder_layer:
   _target_: model.gated_encoder.GatedEncoder
   _partial_: true

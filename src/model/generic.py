@@ -14,6 +14,8 @@ class EmbeddingLayer(torch.nn.Module):
         self.emb_layers = torch.nn.ModuleList(
             [Embedding(num_embeddings=s, embedding_dim=emb_size, padding_idx=0) for s in size_of_dicts if s > 0]
         )
+        if self._passthrough:
+            self.passthrough_norm = nn.BatchNorm1d(len(self._passthrough))
 
     @property
     def output_dim(self) -> int:
@@ -23,8 +25,10 @@ class EmbeddingLayer(torch.nn.Module):
         parts: list[torch.Tensor] = [None] * self._in_features  # type: ignore
         for emb_idx, feat_idx in enumerate(self._to_embed):
             parts[feat_idx] = self.emb_layers[emb_idx](x[:, feat_idx].long())
-        for feat_idx in self._passthrough:
-            parts[feat_idx] = x[:, feat_idx].unsqueeze(1)
+        if self._passthrough:
+            pt_features = self.passthrough_norm(x[:, self._passthrough])
+            for i, feat_idx in enumerate(self._passthrough):
+                parts[feat_idx] = pt_features[:, i].unsqueeze(1)
         return torch.cat(parts, dim=1)
 
 

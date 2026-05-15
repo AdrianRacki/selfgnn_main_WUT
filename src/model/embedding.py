@@ -13,6 +13,7 @@ class GraphEmbeddingLayer(nn.Module):
         edge_feature_sizes: list[int],
         emb_size: int = 6,
         global_features_module: nn.Module = nn.Identity(),
+        global_features_size: int = 15,
     ):
         super().__init__()
 
@@ -22,11 +23,14 @@ class GraphEmbeddingLayer(nn.Module):
 
         self.node_emb_layer = EmbeddingLayer(node_feature_sizes, emb_size)
         self.edge_emb_layer = EmbeddingLayer(edge_feature_sizes, emb_size)
+        self.type_emb_layer = nn.Embedding(3, self.node_output_dim)  # cation/anion/solvent
+        self.global_features_norm = nn.BatchNorm1d(global_features_size)
         self.global_features_module = global_features_module
 
     def forward(self, graph: Data) -> Data:
-        graph.x = self.node_emb_layer(graph.x)
+        graph.x = self.node_emb_layer(graph.x) + self.type_emb_layer(graph.map)
         graph.edge_attr = self.edge_emb_layer(graph.edge_attr)
+        graph.g = self.global_features_norm(graph.g)
         if graph.g.size(0) > 1:
             graph.g = torch.cat(
                 [self.global_features_module(g) for g in split_global_to_mols(graph)],

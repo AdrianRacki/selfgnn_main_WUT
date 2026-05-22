@@ -29,5 +29,5 @@ projector_layer:
   dim_feedforward: 128
   dropout_rate: 0.1
   out_features: 1
-  append_global_features: true
+  append_global_features: false
   global_features_size: 45  # num_mols * num_global_features

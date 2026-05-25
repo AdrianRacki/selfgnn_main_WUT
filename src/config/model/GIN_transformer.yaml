@@ -23,11 +23,11 @@ projector_layer:
   _target_: model.idac_layers.IDACTransformerProjector
   _partial_: true
   num_mols: 3
-  d_model: 64
-  nhead: 4
+  d_model: 32
+  nhead: 2
   num_transformer_layers: 2
-  dim_feedforward: 128
-  dropout_rate: 0.1
+  dim_feedforward: 32
+  dropout_rate: 0.25
   out_features: 1
   append_global_features: false
   global_features_size: 45  # num_mols * num_global_features

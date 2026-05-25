@@ -1,16 +1,22 @@
 optimizer:
   _target_: torch.optim.AdamW
-  lr: 0.01
-  weight_decay: 0.005
-warmup_epochs: 2
+  lr: 0.005
+  weight_decay: 0.001
 scheduler:
-  _target_: torch.optim.lr_scheduler.CosineAnnealingWarmRestarts
-  T_0: 10
-  T_mult: 4
-  eta_min: 1e-5
+  _target_: torch.optim.lr_scheduler.SequentialLR
+  schedulers:
+    - _target_: torch.optim.lr_scheduler.LinearLR
+      start_factor: 0.1
+      end_factor: 1.0
+      total_iters: 2
+    - _target_: torch.optim.lr_scheduler.CosineAnnealingLR
+      T_max: 50
+      eta_min: 1e-5
+  milestones: [2]
 loss:
-  _target_: torch.nn.HuberLoss
+  _target_: losses.WeightedHuberLoss
   delta: 0.17
+  weight_by_frq: true
 
 model_k_params: 1 # number of parameters in the model in thousands
 

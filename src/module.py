@@ -18,15 +18,12 @@ class GraphPredictor(L.LightningModule):
         self.batch_size = config.data.datamodule.batch_size
         self.model: torch.nn.Module = instantiate(config.model)
         self.optimizer = instantiate(config.trainer.optimizer, params=self.model.parameters())
-        main_scheduler = instantiate(config.trainer.scheduler, optimizer=self.optimizer)
-        warmup_epochs = config.trainer.get("warmup_epochs", 0)
-        if warmup_epochs > 0:
-            warmup = torch.optim.lr_scheduler.LinearLR(self.optimizer, start_factor=1e-3, end_factor=1.0, total_iters=warmup_epochs)
-            self.scheduler = torch.optim.lr_scheduler.SequentialLR(
-                self.optimizer, schedulers=[warmup, main_scheduler], milestones=[warmup_epochs]
-            )
+        scheduler_cfg = config.trainer.scheduler
+        if hasattr(scheduler_cfg, "schedulers"):
+            sub_schedulers = [instantiate(s, optimizer=self.optimizer) for s in scheduler_cfg.schedulers]
+            self.scheduler = instantiate(scheduler_cfg, schedulers=sub_schedulers, optimizer=self.optimizer, _recursive_=False)
         else:
-            self.scheduler = main_scheduler
+            self.scheduler = instantiate(scheduler_cfg, optimizer=self.optimizer)
         self.loss_fn = instantiate(config.trainer.loss)
         metrics = MetricCollection([instantiate(metric) for metric in config.metrics.values()])
         self.train_metrics = metrics.clone(prefix="train_")
@@ -44,7 +41,7 @@ class GraphPredictor(L.LightningModule):
 
     def step(self, batch) -> tuple[dict[str, torch.Tensor], torch.Tensor]:
         x = self(batch)
-        loss = self.loss_fn(x[OUTPUT_KEY], batch.y.squeeze())
+        loss = self.loss_fn(x[OUTPUT_KEY], batch.y.squeeze(), frequency=batch.frq)
         return x, loss
 
     def forward(self, batch) -> dict[str, torch.Tensor]:

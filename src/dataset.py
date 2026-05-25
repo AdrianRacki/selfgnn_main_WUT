@@ -43,6 +43,7 @@ class LabeledGraphDataset(InMemoryDataset):
 
     def process(self) -> None:
         df = pd.read_csv(self.raw_paths[0])
+        smiles_frequency = df["smiles"].value_counts().to_dict()
         data_list = []
         for _, row in tqdm(df.iterrows(), desc="Processing data", total=len(df)):
             il_smiles = row["smiles"]
@@ -52,6 +53,7 @@ class LabeledGraphDataset(InMemoryDataset):
                 node_features=self.node_features,
                 edge_features=self.edge_features,
             )
+            data.frq = float(smiles_frequency[il_smiles])
             data.y = float(mp)
             data = add_global_features(self.global_features, data, separate_for_mols=self.separate_global_features)
             data = add_graph_mol_mapping(data)

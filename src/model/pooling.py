@@ -1,5 +1,6 @@
+from collections.abc import Callable
+
 import torch
-import torch_geometric.nn
 from torch import nn
 from torch_geometric.data import Data
 
@@ -16,16 +17,14 @@ class GraphPooling(nn.Module):
 
 
 class IDACPooling(torch.nn.Module):
-    def __init__(self, num_mols: int = 3, channels: int = 1, separate_poolers: bool = True):
+    def __init__(self, pooling_layer: Callable[[], nn.Module], num_mols: int = 3, separate_poolers: bool = True):
         super().__init__()
         self.num_mols = num_mols
         self.separate_poolers = separate_poolers
         if separate_poolers:
-            self.pooling_layers = nn.ModuleList(
-                [torch_geometric.nn.aggr.SoftmaxAggregation(t=2, learn=True, channels=channels) for _ in range(num_mols)]
-            )
+            self.pooling_layers = nn.ModuleList([pooling_layer() for _ in range(num_mols)])
         else:
-            self.pooling_layer = torch_geometric.nn.aggr.SoftmaxAggregation(t=2, learn=True, channels=channels)
+            self.pooling_layer = pooling_layer()
 
     @property
     def output_multiplier(self) -> int:

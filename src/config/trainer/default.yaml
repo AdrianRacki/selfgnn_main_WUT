@@ -12,7 +12,10 @@ scheduler:
     - _target_: torch.optim.lr_scheduler.CosineAnnealingLR
       T_max: 50
       eta_min: 1e-5
-  milestones: [2]
+    - _target_: torch.optim.lr_scheduler.ConstantLR
+      factor: 0.01
+      total_iters: 10000
+  milestones: [2, 52]
 loss:
   _target_: losses.WeightedHuberLoss
   delta: 0.17

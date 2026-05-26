@@ -19,6 +19,13 @@ encoder_layer:
 pooling_layer:
   _target_: model.pooling.IDACPooling
   num_mols: 3
+  pooling_layer:
+    _target_: torch_geometric.nn.aggr.MLPAggregation
+    _partial_: true
+    in_channels: 32
+    out_channels: 32
+    max_num_elements: 50
+    num_layers: 1
 projector_layer:
   _target_: model.idac_layers.IDACProjector
   _partial_: true

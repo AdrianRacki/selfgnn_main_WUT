@@ -1,7 +1,7 @@
 optimizer:
   _target_: torch.optim.AdamW
-  lr: 0.005
-  weight_decay: 0.001
+  lr: 0.0032
+  weight_decay: 6.00e-05
 scheduler:
   _target_: torch.optim.lr_scheduler.SequentialLR
   schedulers:
@@ -18,7 +18,7 @@ scheduler:
   milestones: [2, 52]
 loss:
   _target_: losses.WeightedHuberLoss
-  delta: 0.17
+  delta: 0.2
   weight_by_frq: true
 
 model_k_params: 1 # number of parameters in the model in thousands

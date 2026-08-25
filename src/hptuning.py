@@ -16,7 +16,7 @@ def objective(trial: optuna.trial.Trial) -> float:
     huber_delta = trial.suggest_float("loss.delta", 0.1, 0.3, step=0.05)
 
     overrides = [
-        "model=GIN",
+        "model=GIN_transformer",
         "trainer.trainer.max_epochs=50",
         f"trainer.optimizer.lr={lr}",
         f"trainer.optimizer.weight_decay={weight_decay}",
